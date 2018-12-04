@@ -15,12 +15,10 @@ using namespace cv;
 
 class Features_Tracking
 {
-private:
+//private:
 
-    Mat src_gray,prevgray,src;
-    vector<Point2f> corners0,corners;
-
-
+   // Mat src_gray,prevgray,src;
+    //vector<Point2f> corners0,corners;
 public:
     vector<Point2f> OpticalFlow_Homograhpy(Mat prevgray,Mat src_gray,vector<Point2f> corners,vector<Point2f> corners0);//,TermCriteria termcrit(), Size  winSize());
     void Show_OpticalFlow(int r,Mat src,vector<Point2f> cnrs,vector<Point2f> nextcorners);

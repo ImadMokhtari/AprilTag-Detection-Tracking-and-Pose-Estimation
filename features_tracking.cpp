@@ -11,11 +11,12 @@ vector<Point2f> nextcorners;
 
 Features_Tracking::Features_Tracking(void)
     {
-        cout<<"constructor\n";
+        //cout<<"constructor\n";
     }
 
 vector<Point2f> Features_Tracking::OpticalFlow_Homograhpy(Mat prevgray,Mat src_gray,vector<Point2f> corners,vector<Point2f> corners0)
-{
+{	
+    nextcorners.resize(corners.size());	
     calcOpticalFlowPyrLK(prevgray,
                          src_gray,
                          corners,
@@ -23,7 +24,7 @@ vector<Point2f> Features_Tracking::OpticalFlow_Homograhpy(Mat prevgray,Mat src_g
                          status,
                          err,
                          winSize,
-                         3,
+                         5,
                          termcrit,
                          0,
                          0.001);
@@ -60,8 +61,7 @@ void Features_Tracking::Show_OpticalFlow(int r, Mat src , vector<Point2f> corner
 {
     for( int i = 0; i < nextcorners.size(); i++ )
     {
-        if(corners.size()==nextcorners.size())
-        {
+
         arrowedLine(src,           //picture where to draw
                     corners[i],     //begin arrow points
                     nextcorners[i], //end arrow points
@@ -81,14 +81,10 @@ void Features_Tracking::Show_OpticalFlow(int r, Mat src , vector<Point2f> corner
                 0 );
 
         }
-        else
-        {
-            break;
-        }
-    }
+/*
     cout<<"display"<<endl;
     namedWindow( "OpticalFlow", CV_WINDOW_AUTOSIZE );
     imshow( "OpticalFlow", src );
     waitKey(1);
-
+*/
 }
