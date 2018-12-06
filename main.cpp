@@ -65,32 +65,8 @@ void *detectionv(void *i)
 
     while(1)
     {
-        cap >> frame;
-        cvtColor(frame, gray, COLOR_BGR2GRAY);
-        image_u8_t im = { .width = gray.cols,
-                          .height = gray.rows,
-                          .stride = gray.cols,
-                          .buf = gray.data  };
-        detections = apriltag_detector_detect(td, &im);
-        int siz=zarray_size(detections);
-        for (int i = 0; i < siz; i++)
-        {
-            zarray_get(detections, i, &det);
-            tag_points.clear();
-            tag_points.push_back(Point(det->p[0][0], det->p[0][1]));
-            tag_points.push_back(Point(det->p[1][0], det->p[1][1]));
-            tag_points.push_back(Point(det->p[2][0], det->p[2][1]));
-            tag_points.push_back(Point(det->p[3][0], det->p[3][1]));
-            if(siz!=0)
-            {
-                Find_detec=1;
-            }
-        }
-        if(siz==0)
-        {
-            detec=1;
-        }
-
+        detec=1;
+        int siz;
         while (detec)
         {
             cap >> frame;
@@ -114,6 +90,10 @@ void *detectionv(void *i)
                 {
                     Find_detec=1;
                     detec=0;
+                }
+                else
+                {
+                    detec=1;
                 }
             }
         }
@@ -143,8 +123,8 @@ void *trackingv(void *i)
             Track.Show_Tracking(src,tag_points,H);
             Find_detec=0;
         }
-            Track.Show_OpticalFlow(2,src,corners,next_corners);
-            corners=next_corners;
-            swap(prevgray,src_gray);
-        }
+        Track.Show_OpticalFlow(2,src,corners,next_corners);
+        corners=next_corners;
+        swap(prevgray,src_gray);
+    }
 }
