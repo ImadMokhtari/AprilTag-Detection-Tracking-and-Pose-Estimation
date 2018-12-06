@@ -130,8 +130,6 @@ void *detectionv(void *i)
 void *trackingv(void *i)
 {
         Features_Tracking Track;
-        cap>>src;
-        cvtColor( src, src_gray, CV_BGR2GRAY);
         while(1)
         {
                 cap>>src;
