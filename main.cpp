@@ -16,7 +16,7 @@ vector<Point2f> corners0;
 vector<Point2f> next_corners;
 bool Find_detec=0;
 
-VideoCapture cap(0);
+VideoCapture cap(1);
 
 void *detectionv(void *i);
 void *trackingv(void *i);
@@ -25,7 +25,7 @@ int main()
 {
     int rc,rct;
     pthread_t detection,tracking;
-
+    cap.open(1);
     rc = pthread_create(&detection, NULL, detectionv, (void*)1);
     if (rc)
     {
@@ -46,7 +46,6 @@ int main()
 
 
 void *detectionv(void *i)
-
 {
 
     Tag_Detection_Features Tag;
@@ -54,6 +53,7 @@ void *detectionv(void *i)
     zarray_t *detections;
     apriltag_detection_t *det;
     bool detec=0;
+
     if (!cap.isOpened())
         cerr << "Couldn't open video capture device12" << endl;
 
@@ -113,9 +113,6 @@ void *detectionv(void *i)
                 if(siz!=0)
                 {
                     Find_detec=1;
-                }
-                if(siz!=0)
-                {
                     detec=0;
                 }
             }
@@ -129,22 +126,25 @@ void *detectionv(void *i)
 
 void *trackingv(void *i)
 {
-        Features_Tracking Track;
-        while(1)
+    Features_Tracking Track;
+    Mat H;
+
+    while(1)
+    {
+        cap>>src;
+        cvtColor( src, src_gray, CV_BGR2GRAY );
+        if(prevgray.empty())
+            src_gray.copyTo(prevgray);
+        next_corners= Track.OpticalFlow_Homograhpy(prevgray,src_gray,corners,corners0,H);
+        cout<<H<<endl;
+        if(Find_detec)
         {
-                cap>>src;
-                cvtColor( src, src_gray, CV_BGR2GRAY );
-                if(prevgray.empty())
-                    src_gray.copyTo(prevgray);
-                next_corners= Track.OpticalFlow_Homograhpy(prevgray,src_gray,corners,corners0);
-                if(Find_detec)
-                {
-                    Track.Show_Detection(src,tag_points[0].x,tag_points[0].y,tag_points[1].x,tag_points[1].y,
-                                             tag_points[2].x,tag_points[2].y,tag_points[3].x,tag_points[3].y);
-                    Find_detec=0;
-                }
-                Track.Show_OpticalFlow(2,src,corners,next_corners);
-                corners=next_corners;
-                swap(prevgray,src_gray);
+            Track.Show_Detection(src,tag_points);
+            Track.Show_Tracking(src,tag_points,H);
+            Find_detec=0;
+        }
+            Track.Show_OpticalFlow(2,src,corners,next_corners);
+            corners=next_corners;
+            swap(prevgray,src_gray);
         }
 }
