@@ -6,6 +6,7 @@
 #include "apriltag.h"
 #include "tag36h11.h"
 #include "common/getopt.h"
+#include "pose_estimation.h"
 #include <mutex>
 
 using namespace cv;
@@ -14,7 +15,7 @@ using namespace std;
 Mat src_gray,prevgray;
 vector<Point> tag_points;
 vector<Point2f> corners,corners0,next_corners;
-bool Find_detec=0,flag,begin_detec=false,F_detec;
+bool Find_detec=0,flag,not_detect=false,begin_detect=true;;
 int size_c;
 mutex cap_mutex;
 int siz;
@@ -33,6 +34,8 @@ void *trackingv(void *i);
 
 int main()
 {
+
+
     int rc,rct;
     pthread_t detection,tracking;
     cap.open(1);
@@ -73,101 +76,101 @@ void *detectionv(void *i)
     tf = tag36h11_create();
     apriltag_detector_t *td = apriltag_detector_create();
     Tag.Tag_Define(getopt,tf,td);
-
+  //  ofstream myfile_detections;
+    //myfile_detections.open("/home/imad/Desktop/evaluation/e1.csv");
+    //myfile_detections<<"detectx1"<<","<<"detecty1"<<","<<"detect2"<<","<<"detect2"<<","<<"detectx3"<<","<<"detecty3"<<","<<"detectx4"<<","<<"detecty4"<<","<<"\n";
 
     while(1)
     {
-        if(!begin_detec)
+        detec=1;
+        if(begin_detect)
         {
-            detec=1;
-
             while (detec)
             {
-                if(cap.isOpened())
+                //cap_mutex.lock();
+                cap >>  frame;
+                //   cap_mutex.unlock();
+                if(!frame.empty())
                 {
-                    //cap_mutex.lock();
-                    cap >>  frame;
-                    //   cap_mutex.unlock();
-                    if(!frame.empty())
+                    cvtColor(frame, gray, COLOR_BGR2GRAY);
+                    image_u8_t im = { .width = gray.cols,
+                                      .height = gray.rows,
+                                      .stride = gray.cols,
+                                      .buf = gray.data
+                                    };
+                    detections = apriltag_detector_detect(td, &im);
+                    siz=zarray_size(detections);
+                    for (int i = 0; i < siz; i++)
                     {
-                        cvtColor(frame, gray, COLOR_BGR2GRAY);
-                        image_u8_t im = { .width = gray.cols,
-                                          .height = gray.rows,
-                                          .stride = gray.cols,
-                                          .buf = gray.data
-                                        };
-                        detections = apriltag_detector_detect(td, &im);
-                        siz=zarray_size(detections);
-                        for (int i = 0; i < siz; i++)
+                        zarray_get(detections, i, &det);
+                        tag_points.clear();
+                        tag_points.push_back(Point(det->p[0][0], det->p[0][1]));
+                        tag_points.push_back(Point(det->p[1][0], det->p[1][1]));
+                        tag_points.push_back(Point(det->p[2][0], det->p[2][1]));
+                        tag_points.push_back(Point(det->p[3][0], det->p[3][1]));
+                        box_edges.clear();
+                        box_edges.push_back(Point2f(det->p[0][0], det->p[0][1]));
+                        box_edges.push_back(Point2f(det->p[1][0], det->p[1][1]));
+                        box_edges.push_back(Point2f(det->p[2][0], det->p[2][1]));
+                        box_edges.push_back(Point2f(det->p[3][0], det->p[3][1]));
+                      //  myfile_detections<<box_edges.at(0).x<<","<<box_edges.at(0).y<<","<<box_edges.at(1).x<<","<<box_edges.at(1).y<<","<<box_edges.at(2).x<<","<<box_edges.at(2).y<<","<<box_edges.at(3).x<<","<<box_edges.at(3).y<<","<<"\n";
+                        if(siz!=0)
                         {
-                            zarray_get(detections, i, &det);
-                            tag_points.clear();
-                            tag_points.push_back(Point(det->p[0][0], det->p[0][1]));
-                            tag_points.push_back(Point(det->p[1][0], det->p[1][1]));
-                            tag_points.push_back(Point(det->p[2][0], det->p[2][1]));
-                            tag_points.push_back(Point(det->p[3][0], det->p[3][1]));
-                            box_edges.clear();
-                            box_edges.push_back(Point2f(det->p[0][0], det->p[0][1]));
-                            box_edges.push_back(Point2f(det->p[1][0], det->p[1][1]));
-                            box_edges.push_back(Point2f(det->p[2][0], det->p[2][1]));
-                            box_edges.push_back(Point2f(det->p[3][0], det->p[3][1]));
-
-                            if(siz!=0)
-                            {
-                                Find_detec=1;
-                                detec=0;
-                            }
-
-                            else
-                            {
-                                detec=1;
-
-                            }
-
+                            Find_detec=1;
+                            detec=0;
                         }
-                        if(Find_detec)
-                            corners1 =Tag.Tag_Calculate_Features(gray,tag_points);
-                        size_c=corners1.size();
-                        corners.resize(size_c);
 
-                        corners=corners1;
-                        corners0.resize(corners.size());
-                        corners0=corners;
-                        flag=true;
+                        else
+                            detec=1;
+                    }
+                    if(Find_detec){
+                        corners1 =Tag.Tag_Calculate_Features(gray,tag_points);
+                        not_detect=false;
                     }
                     else
-                        break;
+                    {
+                        corners.clear();
+                        corners0.clear();
+                        not_detect=true;
+                    }
+                    size_c=corners1.size();
+                    corners.resize(size_c);
+
+                    corners=corners1;
+                    corners0.resize(corners.size());
+                    corners0=corners;
+                    flag=true;
                 }
                 else
                     break;
+
+                begin_detect=false;
             }
-            begin_detec=true;
         }
     }
     Tag.Tag_Destroy(getopt,tf,td,detections);
+ //   myfile_detections.close();
 }
 
 vector<Point2f> nedges;
 void *trackingv(void *i)
 {
-    ofstream myfile_e1,myfile_e2,myfile_e3,myfile_e4;
+    ofstream myfile_tracking;
     vector<Mat>next_edges;
     Features_Tracking Track;
     Mat H;
-    vector<Point2f> corners_t,corners0_t,next_corners,prev_edges;
+    vector<Point2f> corners_t,corners0_t,prev_edges;
     Mat src;
+    Mat rotation,translation;
+    Pose_Estimation pose;
 
-    myfile_e1.open("/home/imad/Desktop/evaluation/e1.csv");
-    myfile_e1<<"trackx"<<","<<"tracky"<<","<<"detectx"<<","<<"detecty"<<endl;
+    ofstream myfile_detections;
+    myfile_detections.open("/home/imad/Desktop/evaluation/detections.csv");
+    myfile_detections<<"detectx1"<<","<<"detecty1"<<","<<"detect2"<<","<<"detect2"<<","<<"detectx3"<<","<<"detecty3"<<","<<"detectx4"<<","<<"detecty4"<<","<<"\n";
 
-    myfile_e2.open("/home/imad/Desktop/evaluation/e2.csv");
-    myfile_e2<<"trackx"<<","<<"tracky"<<","<<"detectx"<<","<<"detecty"<<endl;
 
-    myfile_e3.open("/home/imad/Desktop/evaluation/e3.csv");
-    myfile_e3<<"trackx"<<","<<"tracky"<<","<<"detectx"<<","<<"detecty"<<endl;
-
-    myfile_e4.open("/home/imad/Desktop/evaluation/e4.csv");
-    myfile_e4<<"trackx"<<","<<"tracky"<<","<<"detectx"<<","<<"detecty"<<endl;
+    myfile_tracking.open("/home/imad/Desktop/evaluation/tracking.csv");
+    myfile_tracking<<"trackx1"<<","<<"tracky1"<<","<<"trackx2"<<","<<"tracky2"<<","<<"trackx3"<<","<<"tracky3"<<","<<"trackx4"<<","<<"tracky4"<<","<<"\n";
 
     int n=1;
     int nf;
@@ -181,79 +184,72 @@ void *trackingv(void *i)
         while(nf!=n)
         {
             nf++;
-            if(cap.isOpened())
+            // cap_mutex.lock();
+            cap>>src;
+            // cap_mutex.unlock();
+            //waitKey(30);
+
+            if(!src.empty())
             {
-                //waitKey(30);
-                // cap_mutex.lock();
-                cap>>src;
-                // cap_mutex.unlock();
-                //waitKey(30);
-
-                if(!src.empty())
+                if(flag)
                 {
-                    if(flag)
-                    {
-                        corners_t.resize(size_c);
-                        corners_t=corners;
-                        corners0_t.resize(size_c);
-                        corners0_t=corners0;
-                        next_corners.resize(size_c);
-                        // flag=false;
-                    }
-                    cvtColor( src, src_gray, CV_BGR2GRAY );
-                    if(prevgray.empty())&
-                        src_gray.copyTo(prevgray);
-
+                    corners_t.resize(size_c);
+                    corners_t=corners;
+                    corners0_t.resize(size_c);
+                    corners0_t=corners0;
+                    next_corners.resize(size_c);
+                    flag=false;
+                }
+                cvtColor( src, src_gray, CV_BGR2GRAY );
+                if(prevgray.empty())
+                    src_gray.copyTo(prevgray);
+                if(!not_detect)
+                {
                     next_corners= Track.OpticalFlow_Homograhpy(prevgray,src_gray,corners_t,corners0_t,H);
                     nedges=Track.OpticalFlow_tracking_box(src,prevgray,src_gray,prev_edges);
                     if(nedges.size()>0)
                     {
-                        myfile_e1<<nedges.at(0).x<<","<<nedges.at(0).y<<","<<box_edges.at(0).x<<","<<box_edges.at(0).y<<endl;
-                        myfile_e2<<nedges.at(1).x<<","<<nedges.at(1).y<<","<<box_edges.at(1).x<<","<<box_edges.at(1).y<<endl;
-                        myfile_e3<<nedges.at(2).x<<","<<nedges.at(2).y<<","<<box_edges.at(2).x<<","<<box_edges.at(2).y<<endl;
-                        myfile_e4<<nedges.at(3).x<<","<<nedges.at(3).y<<","<<box_edges.at(3).x<<","<<box_edges.at(3).y<<endl;
-                    }
-                    cout<<"prev_edges :\n"<<prev_edges<<endl;
-                    cout<<"next_edges :\n"<<nedges<<endl;
+                        myfile_tracking<<nedges.at(0).x<<","<<nedges.at(0).y<<","<<nedges.at(1).x<<","<<nedges.at(1).y<<","<<nedges.at(2).x<<","<<nedges.at(2).y<<","<<nedges.at(3).x<<","<<nedges.at(3).y<<","<<"\n";
+                        myfile_detections<<prev_edges.at(0).x<<","<<prev_edges.at(0).y<<","<<prev_edges.at(1).x<<","<<prev_edges.at(1).y<<","<<prev_edges.at(2).x<<","<<prev_edges.at(2).y<<","<<prev_edges.at(3).x<<","<<prev_edges.at(3).y<<","<<"\n";
 
+                    }
                     Track.Show_OpticalFlow(2,src,corners_t,next_corners);
                     corners_t.resize(next_corners.size());
+                   // cout<<"**************************"<<endl;
+                    pose.using_solvepnp(src,nedges,rotation,translation);
+                   // cout<<"translation is : \n"<<translation<<endl;
+                   // cout<<"rotation is : \n"<<rotation<<endl;
 
-                    prev_edges=nedges;
-                    corners_t=next_corners;
-                    if (Find_detec)
-                    {
-                        Track.Show_Detection(src,tag_points);
-                        // myfile<<next_edges[0].at<double>(0,0)<<","<<next_edges[0].at<double>(1,0)<<","<<tag_points[0].x<<","<<tag_points[0].y<<endl;
-                        Find_detec=0;
-
-                    }
-
-                    cout<<"display"<<endl;
-                    namedWindow( "OpticalFlow", CV_WINDOW_AUTOSIZE );
-                    video.write(src);
-                    imshow( "OpticalFlow", src );
-                    waitKey(1);
-                    swap(prevgray,src_gray);
-
-
+                    not_detect=false;
                 }
                 else
                 {
-                    break;
+                    corners_t.clear();
+                    corners0_t.clear();
+                    next_corners.clear();
+                    nedges.clear();
                 }
-            }
+           //     cout<<"nedges are :\n"<<nedges<<endl;
 
+                prev_edges=nedges;
+                corners_t=next_corners;
+                if (Find_detec)
+                {
+                    Track.Show_Detection(src,tag_points);
+                    Find_detec=0;
+                }
+                cout<<"display"<<endl;
+                namedWindow( "OpticalFlow", CV_WINDOW_AUTOSIZE );
+                video.write(src);
+                imshow( "OpticalFlow", src );
+                waitKey(1);
+                swap(prevgray,src_gray);
+            }
             else
-            {
                 break;
-            }
         }
-        begin_detec=false;
+        begin_detect=true;
     }
-    myfile_e1.close();
-    myfile_e2.close();
-    myfile_e3.close();
-    myfile_e4.close();
-
+    myfile_tracking.close();
+    myfile_detections.close();
 }

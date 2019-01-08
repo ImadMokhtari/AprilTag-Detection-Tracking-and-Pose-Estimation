@@ -21,7 +21,7 @@ vector<Point2f> Features_Tracking::OpticalFlow_Homograhpy(Mat prevgray,Mat src_g
                              status,
                              err,
                              winSize,
-                             10,
+                             3,
                              termcrit,
                              0,
                              0.05);
@@ -186,7 +186,7 @@ vector<Point2f> Features_Tracking::OpticalFlow_tracking_box(Mat src,Mat prevgray
                              status,
                              err,
                              winSize,
-                             5,
+                             3,
                              termcrit,
                              0,
                              0.01);
