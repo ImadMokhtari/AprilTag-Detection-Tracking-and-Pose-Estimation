@@ -90,10 +90,10 @@ void Features_Tracking::Show_OpticalFlow(int r, Mat src , vector<Point2f> corner
 
 void Features_Tracking::Show_Detection(Mat src,vector<Point> tag_Points)
 {
-    line(src,Point(tag_Points[0].x,tag_Points[0].y),Point(tag_Points[1].x,tag_Points[1].y),Scalar(255,0,0),6);
-    line(src,Point(tag_Points[1].x,tag_Points[1].y),Point(tag_Points[2].x,tag_Points[2].y),Scalar(255,0,0),6);
-    line(src,Point(tag_Points[2].x,tag_Points[2].y),Point(tag_Points[3].x,tag_Points[3].y),Scalar(255,0,0),6);
-    line(src,Point(tag_Points[3].x,tag_Points[3].y),Point(tag_Points[0].x,tag_Points[0].y),Scalar(255,0,0),6);
+    line(src,Point(tag_Points[0].x,tag_Points[0].y),Point(tag_Points[1].x,tag_Points[1].y),Scalar(255,0,0),3);
+    line(src,Point(tag_Points[1].x,tag_Points[1].y),Point(tag_Points[2].x,tag_Points[2].y),Scalar(255,0,0),3);
+    line(src,Point(tag_Points[2].x,tag_Points[2].y),Point(tag_Points[3].x,tag_Points[3].y),Scalar(255,0,0),3);
+    line(src,Point(tag_Points[3].x,tag_Points[3].y),Point(tag_Points[0].x,tag_Points[0].y),Scalar(255,0,0),3);
 }
 /*
 void Features_Tracking::Show_Tracking(Mat src,vector<Point> tag_points,Mat H)
@@ -190,10 +190,10 @@ vector<Point2f> Features_Tracking::OpticalFlow_tracking_box(Mat src,Mat prevgray
                              termcrit,
                              0,
                              0.01);
-        line(src,Point(next_edges[0].x,next_edges[0].y),Point(next_edges[1].x,next_edges[1].y),Scalar(0,0,255),3);
-        line(src,Point(next_edges[1].x,next_edges[1].y),Point(next_edges[2].x,next_edges[2].y),Scalar(0,0,255),3);
-        line(src,Point(next_edges[2].x,next_edges[2].y),Point(next_edges[3].x,next_edges[3].y),Scalar(0,0,255),3);
-        line(src,Point(next_edges[3].x,next_edges[3].y),Point(next_edges[0].x,next_edges[0].y),Scalar(0,0,255),3);
+        line(src,Point(next_edges[0].x,next_edges[0].y),Point(next_edges[1].x,next_edges[1].y),Scalar(0,0,255),2);
+        line(src,Point(next_edges[1].x,next_edges[1].y),Point(next_edges[2].x,next_edges[2].y),Scalar(0,0,255),2);
+        line(src,Point(next_edges[2].x,next_edges[2].y),Point(next_edges[3].x,next_edges[3].y),Scalar(0,0,255),2);
+        line(src,Point(next_edges[3].x,next_edges[3].y),Point(next_edges[0].x,next_edges[0].y),Scalar(0,0,255),2);
         return next_edges;
     }
 }
