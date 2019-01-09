@@ -8,7 +8,7 @@ using namespace std;
 class Pose_Estimation
 {
 public:
-    vector<Point3f> using_solvepnp(Mat src,vector<Point2f> tag_image_points,Mat &rotation, Mat &translation );
+    vector<Point3f> using_solvepnp(Mat src,vector<Point2f> tag_image_points,Mat &rotation,Mat &translation );
     Pose_Estimation();
 };
 

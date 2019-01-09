@@ -20,7 +20,7 @@ int size_c;
 mutex cap_mutex;
 int siz;
 
-char video1[] = "/home/imad/Desktop/Mini Projet Soft/Webcam/1.webm";
+char video1[] = "/home/imad/Desktop/Mini Projet Soft/videocarre/2.webm";
 
 VideoCapture cap;
 
@@ -152,7 +152,7 @@ void *detectionv(void *i)
 vector<Point2f> nedges;
 void *trackingv(void *i)
 {
-    ofstream myfile_tracking,myfile_detections;
+    ofstream myfile_tracking,myfile_detections,translate;
     vector<Mat>next_edges;
     Features_Tracking Track;
     Pose_Estimation pose;
@@ -161,21 +161,22 @@ void *trackingv(void *i)
     vector<Point3f> camera_pose;
 
     myfile_detections.open("/home/imad/Desktop/evaluation/detections.csv");
-    myfile_detections<<"detectx1"<<","<<"detecty1"<<","<<"detect2"<<","<<"detect2"<<","<<"detectx3"<<","<<"detecty3"<<","<<"detectx4"<<","<<"detecty4"<<","<<"\n";
+   // myfile_detections<<"detectx1"<<","<<"detecty1"<<","<<"detect2"<<","<<"detect2"<<","<<"detectx3"<<","<<"detecty3"<<","<<"detectx4"<<","<<"detecty4"<<","<<"\n";
     myfile_tracking.open("/home/imad/Desktop/evaluation/tracking.csv");
-    myfile_tracking<<"trackx1"<<","<<"tracky1"<<","<<"trackx2"<<","<<"tracky2"<<","<<"trackx3"<<","<<"tracky3"<<","<<"trackx4"<<","<<"tracky4"<<","<<"\n";
+    translate.open("/home/imad/Desktop/evaluation/translation.csv");
 
+    //myfile_tracking<<"trackx1"<<","<<"tracky1"<<","<<"trackx2"<<","<<"tracky2"<<","<<"trackx3"<<","<<"tracky3"<<","<<"trackx4"<<","<<"tracky4"<<","<<"\n";
+
+//    vector<Point2f> box_edges0=box_edges;
     int n=1,nf;
     while(1)
     {
-
-        //prev_edges=box_edges;
-        nf=0;
+        nf=5; // for detection and tracking,put nf=0; for tracking only put nf different from zero !!!
         while(nf!=n)
         {
-            cout<<"box_edges\n"<<box_edges<<endl;
-            //cout<<"prev_edges\n"<<prev_edges<<endl;
-            cout<<"nedges\n"<<nedges<<endl;
+             // cout<<"box_edges\n"<<box_edges<<endl;
+           // cout<<"prev_edges\n"<<box_edges0<<endl;
+            //cout<<"nedges\n"<<nedges<<endl;
             nf++;
             cap_mutex.lock();
             cap>>src;
@@ -195,21 +196,25 @@ void *trackingv(void *i)
                 cvtColor( src, src_gray, CV_BGR2GRAY );
                 if(prevgray.empty())
                     src_gray.copyTo(prevgray);
+
+                // for detection only,comment this condition til the end of it
                 if(!not_detect)
                 {
-                next_corners= Track.OpticalFlow_Homograhpy(prevgray,src_gray,corners_t,corners0_t,H);
-                nedges=Track.OpticalFlow_tracking_box(src,prevgray,src_gray,box_edges);
-                if(nedges.size()>0)
-                {
-                    myfile_tracking<<nedges.at(0).x<<","<<nedges.at(0).y<<","<<nedges.at(1).x<<","<<nedges.at(1).y<<","<<nedges.at(2).x<<","<<nedges.at(2).y<<","<<nedges.at(3).x<<","<<nedges.at(3).y<<","<<"\n";
-                    myfile_detections<<box_edges.at(0).x<<","<<box_edges.at(0).y<<","<<box_edges.at(1).x<<","<<box_edges.at(1).y<<","<<box_edges.at(2).x<<","<<box_edges.at(2).y<<","<<box_edges.at(3).x<<","<<box_edges.at(3).y<<","<<"\n";
-                }
-                Track.Show_OpticalFlow(2,src,corners_t,next_corners);
-                corners_t.resize(next_corners.size());
-                camera_pose=pose.using_solvepnp(src,nedges,rotation,translation);
-                cout<<"camera pose :\n"<<camera_pose<<endl;
-                not_detect=false;
+                    next_corners= Track.OpticalFlow_Homograhpy(prevgray,src_gray,corners_t,corners0_t,H);
+                    nedges=Track.OpticalFlow_tracking_box(src,prevgray,src_gray,box_edges);
+                    if(nedges.size()>0)
+                    {
+                        myfile_tracking<<nedges.at(0).x<<","<<nedges.at(0).y<<","<<nedges.at(1).x<<","<<nedges.at(1).y<<","<<nedges.at(2).x<<","<<nedges.at(2).y<<","<<nedges.at(3).x<<","<<nedges.at(3).y<<","<<"\n";
+                        myfile_detections<<box_edges.at(0).x<<","<<box_edges.at(0).y<<","<<box_edges.at(1).x<<","<<box_edges.at(1).y<<","<<box_edges.at(2).x<<","<<box_edges.at(2).y<<","<<box_edges.at(3).x<<","<<box_edges.at(3).y<<","<<"\n";
+
+                    Track.Show_OpticalFlow(2,src,corners_t,next_corners);
+                    corners_t.resize(next_corners.size());
+                    camera_pose=pose.using_solvepnp(src,box_edges,rotation,translation);
+                    translate<<translation.at<double>(0,0)<<","<<translation.at<double>(0,1)<<","<<translation.at<double>(0,2)<<","<<endl;
+                    cout<<"camera pose :\n"<<camera_pose<<endl;
+                    not_detect=false;
                     }
+                }
 
                 else
                 {
@@ -222,10 +227,17 @@ void *trackingv(void *i)
                 corners_t=next_corners;
                 if (Find_detec)
                 {
+                   // for detection only,uncomment lines below
+
+                   /* camera_pose=pose.using_solvepnp(src,box_edges,rotation,translation);
+                    translate<<translation.at<double>(0,0)<<","<<translation.at<double>(0,1)<<","<<translation.at<double>(0,2)<<","<<endl;
+                   */
+                      cout<<"camera pose :\n"<<camera_pose<<endl;
+
                     Track.Show_Detection(src,tag_points);
                     Find_detec=0;
                 }
-                cout<<"display"<<endl;
+                // cout<<"display"<<endl;
                 namedWindow( "OpticalFlow", CV_WINDOW_AUTOSIZE );
                 video.write(src);
                 imshow( "OpticalFlow", src );
@@ -239,4 +251,5 @@ void *trackingv(void *i)
     }
     myfile_tracking.close();
     myfile_detections.close();
+    translate.close();
 }
