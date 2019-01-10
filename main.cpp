@@ -148,14 +148,14 @@ void *trackingv(void *i)
     vector<Mat>next_edges;
     Features_Tracking Track;
     Pose_Estimation pose;
-    Mat H,rotation,translation,src;
+    Mat H,rotation,translation,src,source;
     vector<Point2f> corners_t,corners0_t;//,prev_edges;
     vector<Point3f> camera_pose;
 
     myfile_detections.open("/home/odroid/Desktop/evaluation/detections.csv");
     myfile_tracking.open("/home/odroid/Desktop/evaluation/tracking.csv");
     translate.open("/home/odroid/Desktop/evaluation/translation.csv");
-	translatedetect.open("/home/odroid/Desktop/evaluation/translationdetection.csv");
+    translatedetect.open("/home/odroid/Desktop/evaluation/translationdetection.csv");
     int n=1,nf;
    
     while(1)
@@ -165,6 +165,7 @@ void *trackingv(void *i)
         while(nf!=n)
         {
             cap>>src;
+	    src.copyTo(source);
             if(!src.empty())
             {
                 if(flag)
@@ -194,9 +195,22 @@ void *trackingv(void *i)
                     corners_t.resize(next_corners.size());
                     camera_pose=pose.using_solvepnp(src,box_edges,rotation,translation);
                     translate<<translation.at<double>(0,0)<<","<<translation.at<double>(0,1)<<","<<translation.at<double>(0,2)<<","<<endl;
-                    cout<<"camera pose :\n"<<camera_pose<<endl;
-                    not_detect=false;
+                    if (Find_detec)
+               	    {
+                      // for detection only,uncomment lines below
+
+                      // camera_pose=pose.using_solvepnp(src,box_edges,rotation,translation);
+                      translatedetect<<translation.at<double>(0,0)<<","<<translation.at<double>(0,1)<<","<<translation.at<double>(0,2)<<","<<endl;
+                   
+                      cout<<"camera pose :\n"<<camera_pose<<endl;
+
+                      Track.Show_Detection(src,tag_points);
+                      Find_detec=0;
+                     }
+	             cout<<"camera pose :\n"<<camera_pose<<endl;
+                     not_detect=false;
                     }
+		
                 }
 
                 else
@@ -208,20 +222,8 @@ void *trackingv(void *i)
                 }
                 box_edges=nedges;
                 corners_t=next_corners;
-                if (Find_detec)
-                {
-                   // for detection only,uncomment lines below
-
-                   // camera_pose=pose.using_solvepnp(src,box_edges,rotation,translation);
-                    translatedetect<<translation.at<double>(0,0)<<","<<translation.at<double>(0,1)<<","<<translation.at<double>(0,2)<<","<<endl;
-                   
-                      cout<<"camera pose :\n"<<camera_pose<<endl;
-
-                    Track.Show_Detection(src,tag_points);
-                    Find_detec=0;
-                }
                 namedWindow( "OpticalFlow", CV_WINDOW_AUTOSIZE );
-                video.write(src);
+                video.write(source);
                 imshow( "OpticalFlow", src );
                 waitKey(1);
                 swap(prevgray,src_gray);
@@ -229,12 +231,11 @@ void *trackingv(void *i)
             else
                 break;
 		nf++;
-            
-        }
+           }
         begin_detect=true;
     }
     myfile_tracking.close();
     myfile_detections.close();
     translate.close();
-	translatedetect.close();
+    translatedetect.close();
 }
