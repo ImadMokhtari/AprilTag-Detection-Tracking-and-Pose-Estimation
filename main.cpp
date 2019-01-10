@@ -17,17 +17,17 @@ vector<Point> tag_points;
 vector<Point2f> corners,corners0,next_corners;
 bool Find_detec=0,flag,not_detect=false,begin_detect=true;;
 int size_c;
-mutex cap_mutex;
+//mutex cap_mutex;
 int siz;
 
-char video1[] = "/home/imad/Desktop/Mini Projet Soft/videocarre/2.webm";
+//char video1[] = "/home/imad/Desktop/Mini Projet Soft/videocarre/2.webm";
 
-VideoCapture cap;
+VideoCapture cap(0);
 
 // Define the codec and create VideoWriter object.The output is stored in 'outcpp.avi' file.
 int frame_width = cap.get(CV_CAP_PROP_FRAME_WIDTH);
 int frame_height = cap.get(CV_CAP_PROP_FRAME_HEIGHT);
-VideoWriter video("/home/imad/Desktop/evaluation/detect_track.avi",CV_FOURCC('M','J','P','G'),10, Size(frame_width,frame_height));
+VideoWriter video("/home/odroid/Desktop/evaluation/detect_track.avi",CV_FOURCC('M','J','P','G'),10, Size(frame_width,frame_height));
 
 void *detectionv(void *i);
 void *trackingv(void *i);
@@ -36,7 +36,7 @@ int main()
 {
     int rc,rct;
     pthread_t detection,tracking;
-    cap.open(video1);
+    cap.open(0);
     rc = pthread_create(&detection, NULL, detectionv, (void*)1);
     if (rc)
     {
@@ -63,7 +63,7 @@ void *detectionv(void *i)
     Mat  gray,frame;
     zarray_t *detections;
     apriltag_detection_t *det;
-    bool detec=0,grab;
+    bool detec=0;//,grab;
 
     if (!cap.isOpened())
         cerr << "Couldn't open video capture device12" << endl;
@@ -73,10 +73,6 @@ void *detectionv(void *i)
     tf = tag36h11_create();
     apriltag_detector_t *td = apriltag_detector_create();
     Tag.Tag_Define(getopt,tf,td);
-    //  ofstream myfile_detections;
-    //myfile_detections.open("/home/imad/Desktop/evaluation/e1.csv");
-    //myfile_detections<<"detectx1"<<","<<"detecty1"<<","<<"detect2"<<","<<"detect2"<<","<<"detectx3"<<","<<"detecty3"<<","<<"detectx4"<<","<<"detecty4"<<","<<"\n";
-
     while(1)
     {
         detec=1;
@@ -84,9 +80,7 @@ void *detectionv(void *i)
         {
             while (detec)
             {
-                cap_mutex.lock();
                 cap >>  frame;
-                cap_mutex.unlock();
                 if(!frame.empty())
                 {
                     cvtColor(frame, gray, COLOR_BGR2GRAY);
@@ -110,7 +104,6 @@ void *detectionv(void *i)
                         box_edges.push_back(Point2f(det->p[1][0], det->p[1][1]));
                         box_edges.push_back(Point2f(det->p[2][0], det->p[2][1]));
                         box_edges.push_back(Point2f(det->p[3][0], det->p[3][1]));
-                        //  myfile_detections<<box_edges.at(0).x<<","<<box_edges.at(0).y<<","<<box_edges.at(1).x<<","<<box_edges.at(1).y<<","<<box_edges.at(2).x<<","<<box_edges.at(2).y<<","<<box_edges.at(3).x<<","<<box_edges.at(3).y<<","<<"\n";
                         if(siz!=0)
                         {
                             Find_detec=1;
@@ -146,13 +139,12 @@ void *detectionv(void *i)
         }
     }
     Tag.Tag_Destroy(getopt,tf,td,detections);
-    //   myfile_detections.close();
 }
 
 vector<Point2f> nedges;
 void *trackingv(void *i)
 {
-    ofstream myfile_tracking,myfile_detections,translate;
+    ofstream myfile_tracking,myfile_detections,translate,translatedetect;
     vector<Mat>next_edges;
     Features_Tracking Track;
     Pose_Estimation pose;
@@ -160,28 +152,19 @@ void *trackingv(void *i)
     vector<Point2f> corners_t,corners0_t;//,prev_edges;
     vector<Point3f> camera_pose;
 
-    myfile_detections.open("/home/imad/Desktop/evaluation/detections.csv");
-   // myfile_detections<<"detectx1"<<","<<"detecty1"<<","<<"detect2"<<","<<"detect2"<<","<<"detectx3"<<","<<"detecty3"<<","<<"detectx4"<<","<<"detecty4"<<","<<"\n";
-    myfile_tracking.open("/home/imad/Desktop/evaluation/tracking.csv");
-    translate.open("/home/imad/Desktop/evaluation/translation.csv");
-
-    //myfile_tracking<<"trackx1"<<","<<"tracky1"<<","<<"trackx2"<<","<<"tracky2"<<","<<"trackx3"<<","<<"tracky3"<<","<<"trackx4"<<","<<"tracky4"<<","<<"\n";
-
-//    vector<Point2f> box_edges0=box_edges;
+    myfile_detections.open("/home/odroid/Desktop/evaluation/detections.csv");
+    myfile_tracking.open("/home/odroid/Desktop/evaluation/tracking.csv");
+    translate.open("/home/odroid/Desktop/evaluation/translation.csv");
+	translatedetect.open("/home/odroid/Desktop/evaluation/translationdetection.csv");
     int n=1,nf;
+   
     while(1)
     {
-        nf=5; // for detection and tracking,put nf=0; for tracking only put nf different from zero !!!
+
+        nf=0; // for detection and tracking,put nf=0; for tracking only put nf different from zero !!!
         while(nf!=n)
         {
-             // cout<<"box_edges\n"<<box_edges<<endl;
-           // cout<<"prev_edges\n"<<box_edges0<<endl;
-            //cout<<"nedges\n"<<nedges<<endl;
-            nf++;
-            cap_mutex.lock();
             cap>>src;
-            cap_mutex.unlock();
-            waitKey(42);
             if(!src.empty())
             {
                 if(flag)
@@ -197,13 +180,13 @@ void *trackingv(void *i)
                 if(prevgray.empty())
                     src_gray.copyTo(prevgray);
 
-                // for detection only,comment this condition til the end of it
                 if(!not_detect)
                 {
                     next_corners= Track.OpticalFlow_Homograhpy(prevgray,src_gray,corners_t,corners0_t,H);
                     nedges=Track.OpticalFlow_tracking_box(src,prevgray,src_gray,box_edges);
                     if(nedges.size()>0)
                     {
+		cout<<",   "<<nedges<<endl;
                         myfile_tracking<<nedges.at(0).x<<","<<nedges.at(0).y<<","<<nedges.at(1).x<<","<<nedges.at(1).y<<","<<nedges.at(2).x<<","<<nedges.at(2).y<<","<<nedges.at(3).x<<","<<nedges.at(3).y<<","<<"\n";
                         myfile_detections<<box_edges.at(0).x<<","<<box_edges.at(0).y<<","<<box_edges.at(1).x<<","<<box_edges.at(1).y<<","<<box_edges.at(2).x<<","<<box_edges.at(2).y<<","<<box_edges.at(3).x<<","<<box_edges.at(3).y<<","<<"\n";
 
@@ -229,15 +212,14 @@ void *trackingv(void *i)
                 {
                    // for detection only,uncomment lines below
 
-                   /* camera_pose=pose.using_solvepnp(src,box_edges,rotation,translation);
-                    translate<<translation.at<double>(0,0)<<","<<translation.at<double>(0,1)<<","<<translation.at<double>(0,2)<<","<<endl;
-                   */
+                   // camera_pose=pose.using_solvepnp(src,box_edges,rotation,translation);
+                    translatedetect<<translation.at<double>(0,0)<<","<<translation.at<double>(0,1)<<","<<translation.at<double>(0,2)<<","<<endl;
+                   
                       cout<<"camera pose :\n"<<camera_pose<<endl;
 
                     Track.Show_Detection(src,tag_points);
                     Find_detec=0;
                 }
-                // cout<<"display"<<endl;
                 namedWindow( "OpticalFlow", CV_WINDOW_AUTOSIZE );
                 video.write(src);
                 imshow( "OpticalFlow", src );
@@ -246,10 +228,13 @@ void *trackingv(void *i)
             }
             else
                 break;
+		nf++;
+            
         }
         begin_detect=true;
     }
     myfile_tracking.close();
     myfile_detections.close();
     translate.close();
+	translatedetect.close();
 }
