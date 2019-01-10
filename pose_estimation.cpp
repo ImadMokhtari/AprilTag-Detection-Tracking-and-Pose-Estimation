@@ -14,9 +14,9 @@ vector<Point3f> Pose_Estimation::using_solvepnp(Mat src,vector<Point2f> tag_imag
 
     tag_3d_points.clear();
     tag_3d_points.push_back(Point3d(0.0f, 0.0f, 0.0f));
-    tag_3d_points.push_back(Point3d(0.0f, 17.0f, 0.0f));
-    tag_3d_points.push_back(Point3d(16.0f, 17.0f, 0.0f));
-    tag_3d_points.push_back(Point3d(16.0f, 0.0f, 0.0f));
+    tag_3d_points.push_back(Point3d(0.0f, 17.3f, 0.0f));
+    tag_3d_points.push_back(Point3d(17.3f, 17.3f, 0.0f));
+    tag_3d_points.push_back(Point3d(17.3f, 0.0f, 0.0f));
 
     // Camera internals
    // double focal_length =717.909 ; // Approximate focal length.
