@@ -20,9 +20,9 @@ vector<Point3f> Pose_Estimation::using_solvepnp(Mat src,vector<Point2f> tag_imag
 
     // Camera internals
    // double focal_length =717.909 ; // Approximate focal length.
-    Point2d center = Point2d(309.508,232.9777);
-    Mat camera_matrix = (Mat_<double>(3,3) << 734.2852, 0, center.x, 0 , 709.3471, center.y, 0, 0, 1);
-    Mat dist_coeffs = (Mat_<double>(4,1)<< 0.1281,-1.0772,0.0169,-0.0156); // Assuming no lens distortion
+    Point2d center = Point2d(331.8828,234.9087);
+    Mat camera_matrix = (Mat_<double>(3,3) << 709.5849, 0, center.x, 0 , 682.9863, center.y, 0, 0, 1);
+    Mat dist_coeffs = (Mat_<double>(4,1)<< 0.0295,0.2532,0.0019,-0.0016); // Assuming no lens distortion
 //(4,1,DataType<double>::type);
     // Solve for pose
     if(!tag_image_points.empty()){
