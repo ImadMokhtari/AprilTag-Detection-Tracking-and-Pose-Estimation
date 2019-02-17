@@ -182,29 +182,33 @@ void *trackingv(void *i)
                 if(prevgray.empty())
                     src_gray.copyTo(prevgray);
 
-                next_corners= Track.OpticalFlow_Homograhpy(prevgray,src_gray,corners_t,corners0_t,H);
-                nedges=Track.OpticalFlow_tracking_box(src,prevgray,src_gray,box_edges);
-                if(box_edges.size()>0)
+                if(!not_detect)
                 {
-                    Track.Show_OpticalFlow(2,src,corners_t,next_corners);
-                    corners_t.resize(next_corners.size());
-
-                    camera_pose=pose.using_solvepnp(src,box_edges,rotation,translation);
-                    pose.show_pose_xyz(src,translation);
-                    pose.show_pose_rotation(src,rotation);
-                    if(Find_detec)
+                    next_corners= Track.OpticalFlow_Homograhpy(prevgray,src_gray,corners_t,corners0_t,H);
+                    nedges=Track.OpticalFlow_tracking_box(src,prevgray,src_gray,box_edges);
+                    if(box_edges.size()>0)
                     {
-                        Track.Show_Detection(src,tag_points);
-                        Find_detec=0;
+                        Track.Show_OpticalFlow(2,src,corners_t,next_corners);
+                        corners_t.resize(next_corners.size());
+
+                        camera_pose=pose.using_solvepnp(src,box_edges,rotation,translation);
+                        pose.show_pose_xyz(src,translation);
+                        pose.show_pose_rotation(src,rotation);
+                        if(Find_detec)
+                        {
+                            Track.Show_Detection(src,tag_points);
+                            Find_detec=0;
+                        }
                     }
                 }
-                if(not_detect)
-                {
-                    corners_t.clear();
-                    corners0_t.clear();
-                    next_corners.clear();
-                    nedges.clear();
-                }
+                else
+                    if(not_detect)
+                    {
+                        corners_t.clear();
+                        corners0_t.clear();
+                        next_corners.clear();
+                        nedges.clear();
+                    }
                 box_edges=nedges;
                 corners_t=next_corners;
                 namedWindow( "OpticalFlow", CV_WINDOW_AUTOSIZE);
