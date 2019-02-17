@@ -11,7 +11,7 @@
 using namespace cv;
 using namespace std;
 
-Mat src_gray,prevgray;
+Mat src_gray,prevgray,current_image;
 vector<Point> tag_points;
 vector<Point2f> corners,corners0,next_corners;
 bool Find_detec=0,flag,not_detect=false,begin_detect=true;;
@@ -21,23 +21,35 @@ VideoCapture cap;
 
 void *detectionv(void *i);
 void *trackingv(void *i);
+void *image_capture(void *i);
 
 int main()
 {
-    int rc,rct;
-    pthread_t detection,tracking;
-    rc = pthread_create(&detection, NULL, detectionv, (void*)1);
+    int rc,rct,rcap;
+    pthread_t detection,tracking,image;
+
     cap.open(0);
     if (!cap.isOpened())
     {
         cout<<"cap can't be opened\n";
         exit(-1);
     }
+
+    rcap = pthread_create(&image, NULL, image_capture, (void*)1);
+    if (rcap)
+    {
+        cout << "Error:unable to create thread," << rcap << endl;
+        exit(-1);
+    }
+
+
+    rc = pthread_create(&detection, NULL, detectionv, (void*)1);
     if (rc)
     {
         cout << "Error:unable to create thread," << rc << endl;
         exit(-1);
     }
+
 
     rct = pthread_create(&tracking, NULL, trackingv, (void*)1);
     if (rct) {
@@ -73,7 +85,7 @@ void *detectionv(void *i)
         {
             while (detec)
             {
-                cap>>frame;
+                frame=current_image.clone();
                 if(!frame.empty())
                 {
                     cvtColor(frame, gray, COLOR_BGR2GRAY);
@@ -140,16 +152,12 @@ void *detectionv(void *i)
 vector<Point2f> nedges;
 void *trackingv(void *i)
 {
- //   ofstream myfile_detections,translate,translatedetect;
     vector<Mat>next_edges;
     Features_Tracking Track;
     Pose_Estimation pose;
     Mat H,rotation,translation,src;
     vector<Point2f> corners_t,corners0_t;
     vector<Point3f> camera_pose;
-
-   // translate.open("/home/imad/Desktop/Mini_projet/evaluation/translation.csv");
-    //translatedetect.open("/home/imad/Desktop/Mini_projet/evaluation/translationdetection.csv");
 
     int n=1,nf;
     while(1)
@@ -158,7 +166,7 @@ void *trackingv(void *i)
         while(nf!=n)
         {
             nf++;
-            cap>>src;
+            src=current_image.clone();
             if(!src.empty())
             {
                 if(flag)
@@ -174,33 +182,23 @@ void *trackingv(void *i)
                 if(prevgray.empty())
                     src_gray.copyTo(prevgray);
 
-                if(!not_detect)
+                next_corners= Track.OpticalFlow_Homograhpy(prevgray,src_gray,corners_t,corners0_t,H);
+                nedges=Track.OpticalFlow_tracking_box(src,prevgray,src_gray,box_edges);
+                if(box_edges.size()>0)
                 {
-                    next_corners= Track.OpticalFlow_Homograhpy(prevgray,src_gray,corners_t,corners0_t,H);
-                    nedges=Track.OpticalFlow_tracking_box(src,prevgray,src_gray,box_edges);
-                    if(box_edges.size()>0)
-                    {
-                        Track.Show_OpticalFlow(2,src,corners_t,next_corners);
-                        corners_t.resize(next_corners.size());
+                    Track.Show_OpticalFlow(2,src,corners_t,next_corners);
+                    corners_t.resize(next_corners.size());
 
-                        camera_pose=pose.using_solvepnp(src,box_edges,rotation,translation);
-                        pose.show_pose_xyz(src,translation);
-                        pose.show_pose_rotation(src,rotation);
-                        //translation from the algorithme
-                        //translate<<translation.at<double>(0,0)<<","<<translation.at<double>(0,1)<<","<<translation.at<double>(0,2)<<","<<endl;
-                        if(Find_detec)
-                        {
-                            //translation from the detection
-                          //  translatedetect<<translation.at<double>(0,0)<<","<<translation.at<double>(0,1)<<","<<translation.at<double>(0,2)<<","<<endl;
-                            Track.Show_Detection(src,tag_points);
-                            Find_detec=0;
-                        }
-                        not_detect=false;
+                    camera_pose=pose.using_solvepnp(src,box_edges,rotation,translation);
+                    pose.show_pose_xyz(src,translation);
+                    pose.show_pose_rotation(src,rotation);
+                    if(Find_detec)
+                    {
+                        Track.Show_Detection(src,tag_points);
+                        Find_detec=0;
                     }
-                    //else
-                    //  translate<<0<<","<<0<<","<<0<<","<<endl;
                 }
-                else
+                if(not_detect)
                 {
                     corners_t.clear();
                     corners0_t.clear();
@@ -219,6 +217,13 @@ void *trackingv(void *i)
         }
         begin_detect=true;
     }
-  //  translate.close();
-   // translatedetect.close();
+}
+
+
+
+void *image_capture(void *i)
+{
+    while(1)
+        cap>>current_image;
+
 }
