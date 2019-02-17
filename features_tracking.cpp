@@ -26,12 +26,12 @@ vector<Point2f> Features_Tracking::OpticalFlow_Homograhpy(Mat prevgray,Mat src_g
                              0,
                              0.05);
 
-        if(corners0.size()==nexttcorners.size())
+        if(corners.size()==nexttcorners.size())
         {
-            H =findHomography (corners0,
+            H =findHomography (corners,
                                nexttcorners,
                                RANSAC,         //method to use
-                               5,
+                               3,
                                OutLiersMask,   //OutputArray mask
                                1000,           //const int maxIters
                                0.5 );
@@ -136,13 +136,13 @@ void Features_Tracking::Show_Tracking(Mat src,vector<Point> tag_points,Mat H)
     }
 }*/
 
-vector<Mat> Features_Tracking::Show_Tracking(Mat src,vector<Point> tag_points,Mat H)//,vector<Point>next_edges)
+vector<Point2f> Features_Tracking::Show_Tracking_Homography(Mat src,vector<Point2f> tag_points,Mat H)//,vector<Point>next_edges)
 {
 
     vector <Point3f> pred_edge;
     Mat pred;
     vector<Mat> next_points;
-    vector<Point>next_edges;
+    vector<Point2f>next_edges;
     if(!H.empty())
     {
         pred_edge.clear();
@@ -156,14 +156,14 @@ vector<Mat> Features_Tracking::Show_Tracking(Mat src,vector<Point> tag_points,Ma
             Mat edge11=H*edge1;
             next_points.push_back(edge11);
             Point e1((int) edge11.at<double>(0), (int) edge11.at<double>(1));
-            next_edges.push_back(Point((int) edge11.at<double>(0), (int) edge11.at<double>(1)));
+            next_edges.push_back(Point2f((int) edge11.at<double>(0), (int) edge11.at<double>(1)));
         }
 
         line(src,next_edges[0],next_edges[1],Scalar(0,0,255), 2);
         line(src,next_edges[1],next_edges[2],Scalar(0,0,255), 2);
         line(src,next_edges[2],next_edges[3],Scalar(0,0,255), 2);
         line(src,next_edges[3],next_edges[0],Scalar(0,0,255), 2);
-        return next_points;
+        return next_edges;
     }
 }
 
@@ -194,6 +194,32 @@ vector<Point2f> Features_Tracking::OpticalFlow_tracking_box(Mat src,Mat prevgray
         line(src,Point(next_edges[1].x,next_edges[1].y),Point(next_edges[2].x,next_edges[2].y),Scalar(0,0,255),2);
         line(src,Point(next_edges[2].x,next_edges[2].y),Point(next_edges[3].x,next_edges[3].y),Scalar(0,0,255),2);
         line(src,Point(next_edges[3].x,next_edges[3].y),Point(next_edges[0].x,next_edges[0].y),Scalar(0,0,255),2);
+        return next_edges;
+    }
+}
+
+vector<Point2f> Features_Tracking::Next_with_Homography(vector<Point2f> tag_points,Mat H)//,vector<Point>next_edges)
+{
+
+    vector <Point3f> pred_edge;
+    Mat pred;
+    vector<Mat> next_points;
+    vector<Point2f>next_edges;
+    if(!H.empty())
+    {
+        pred_edge.clear();
+        next_edges.clear();
+        next_points.clear();
+
+        for (int i=0;i<4;i++)
+        {
+            pred.push_back(Point3f(tag_points[i].x,tag_points[i].y,1));
+            Mat edge1 = (Mat_<double>(3,1)<<pred.at<float>(i,0),pred.at<float>(i,1),1);
+            Mat edge11=H*edge1;
+            next_points.push_back(edge11);
+            Point e1((int) edge11.at<double>(0), (int) edge11.at<double>(1));
+            next_edges.push_back(Point((int) edge11.at<double>(0), (int) edge11.at<double>(1)));
+        }
         return next_edges;
     }
 }
