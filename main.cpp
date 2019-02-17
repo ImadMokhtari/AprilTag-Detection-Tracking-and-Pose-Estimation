@@ -12,7 +12,6 @@ using namespace cv;
 using namespace std;
 
 Mat src_gray,prevgray,current_image;
-vector<Point> tag_points;
 vector<Point2f> corners,corners0,next_corners;
 bool Find_detec=0,flag,not_detect=false,begin_detect=true;;
 int size_c;
@@ -85,9 +84,10 @@ void *detectionv(void *i)
         {
             while (detec)
             {
-                frame=current_image.clone();
-                if(!frame.empty())
+                if(!current_image.empty())
                 {
+                    frame=current_image.clone();
+
                     cvtColor(frame, gray, COLOR_BGR2GRAY);
                     image_u8_t im = { .width = gray.cols,
                                       .height = gray.rows,
@@ -99,14 +99,7 @@ void *detectionv(void *i)
                     for (int i = 0; i < siz; i++)
                     {
                         zarray_get(detections, i, &det);
-
-                        tag_points.clear();
-                        tag_points.push_back(Point(det->p[0][0], det->p[0][1]));
-                        tag_points.push_back(Point(det->p[1][0], det->p[1][1]));
-                        tag_points.push_back(Point(det->p[2][0], det->p[2][1]));
-                        tag_points.push_back(Point(det->p[3][0], det->p[3][1]));
-
-                        box_edges.clear();
+                         box_edges.clear();
                         box_edges.push_back(Point2f(det->p[0][0], det->p[0][1]));
                         box_edges.push_back(Point2f(det->p[1][0], det->p[1][1]));
                         box_edges.push_back(Point2f(det->p[2][0], det->p[2][1]));
@@ -122,7 +115,7 @@ void *detectionv(void *i)
                             detec=1;
                     }
                     if(Find_detec){
-                        corners1 =Tag.Tag_Calculate_Features(gray,tag_points);
+                        corners1 =Tag.Tag_Calculate_Features(gray,box_edges);
                         not_detect=false;
                     }
                     else
@@ -166,9 +159,9 @@ void *trackingv(void *i)
         while(nf!=n)
         {
             nf++;
-            src=current_image.clone();
-            if(!src.empty())
+            if(!current_image.empty())
             {
+                src=current_image.clone();
                 if(flag)
                 {
                     corners_t.resize(size_c);
@@ -182,33 +175,29 @@ void *trackingv(void *i)
                 if(prevgray.empty())
                     src_gray.copyTo(prevgray);
 
-                if(!not_detect)
+                next_corners= Track.OpticalFlow_Homograhpy(prevgray,src_gray,corners_t,corners0_t,H);
+                nedges=Track.OpticalFlow_tracking_box(src,prevgray,src_gray,box_edges);
+                if(box_edges.size()>0)
                 {
-                    next_corners= Track.OpticalFlow_Homograhpy(prevgray,src_gray,corners_t,corners0_t,H);
-                    nedges=Track.OpticalFlow_tracking_box(src,prevgray,src_gray,box_edges);
-                    if(box_edges.size()>0)
-                    {
-                        Track.Show_OpticalFlow(2,src,corners_t,next_corners);
-                        corners_t.resize(next_corners.size());
+                    Track.Show_OpticalFlow(2,src,corners_t,next_corners);
+                    corners_t.resize(next_corners.size());
 
-                        camera_pose=pose.using_solvepnp(src,box_edges,rotation,translation);
-                        pose.show_pose_xyz(src,translation);
-                        pose.show_pose_rotation(src,rotation);
-                        if(Find_detec)
-                        {
-                            Track.Show_Detection(src,tag_points);
-                            Find_detec=0;
-                        }
+                    camera_pose=pose.using_solvepnp(src,box_edges,rotation,translation);
+                    pose.show_pose_xyz(src,translation);
+                    pose.show_pose_rotation(src,rotation);
+                    if(Find_detec)
+                    {
+                        Track.Show_Detection(src,box_edges);
+                        Find_detec=0;
                     }
                 }
-                else
-                    if(not_detect)
-                    {
-                        corners_t.clear();
-                        corners0_t.clear();
-                        next_corners.clear();
-                        nedges.clear();
-                    }
+                if(not_detect)
+                {
+                    corners_t.clear();
+                    corners0_t.clear();
+                    next_corners.clear();
+                    nedges.clear();
+                }
                 box_edges=nedges;
                 corners_t=next_corners;
                 namedWindow( "OpticalFlow", CV_WINDOW_AUTOSIZE);
@@ -229,5 +218,4 @@ void *image_capture(void *i)
 {
     while(1)
         cap>>current_image;
-
 }

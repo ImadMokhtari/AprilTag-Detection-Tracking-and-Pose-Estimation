@@ -23,7 +23,7 @@ class Tag_Detection_Features
 public:
     void Tag_Define(getopt_t *getopt,apriltag_family_t *tf,apriltag_detector_t *td);
     void Tag_Destroy(getopt_t *getopt,apriltag_family_t *tf,apriltag_detector_t *td,zarray_t *detections);
-    vector<Point2f> Tag_Calculate_Features(Mat gray,vector<Point> tag_points);
+    vector<Point2f> Tag_Calculate_Features(Mat gray,vector<Point2f> tag_points);
     Tag_Detection_Features();
 };
 

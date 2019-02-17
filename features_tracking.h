@@ -15,7 +15,7 @@ class Features_Tracking
 public:
     vector<Point2f> OpticalFlow_Homograhpy(Mat prevgray,Mat src_gray,vector<Point2f> corners,vector<Point2f> corners0,Mat& H);//,TermCriteria termcrit(), Size  winSize());
     void Show_OpticalFlow(int r,Mat src,vector<Point2f> cnrs,vector<Point2f> nextcorners);
-    void Show_Detection(Mat,vector<Point>);
+    void Show_Detection(Mat,vector<Point2f>);
     vector<Point2f> Show_Tracking_Homography(Mat src, vector<Point2f>,Mat H);//,vector<Point>next_edges);
 
     vector<Point2f> Next_with_Homography(vector<Point2f>,Mat H);
