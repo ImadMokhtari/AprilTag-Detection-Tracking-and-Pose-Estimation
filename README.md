@@ -1,9 +1,8 @@
 # AprilTags-detection-and-tracking
-first essay
-
+A parallel detection and tracking approach for 3D camera pose estimation, using OpenCV.\
 
 Dependencies : 
 
 Apriltag: https://april.eecs.umich.edu/software/apriltag.html 
 
-Opencv
+OpenCV C++ library
