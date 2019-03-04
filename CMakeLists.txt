@@ -16,7 +16,8 @@ include_directories(-L/usr/local/lib)
 
 find_package(OpenCV REQUIRED )
 
-set(SOURCE_FILES main.cpp features_tracking.cpp tag_detection_features.cpp pose_estimation.cpp)
+set(SOURCE_FILES main.cpp pdat.cpp tag_detection_features.cpp features_tracking.cpp pose_estimation.cpp)
+    #features_tracking.cpp tag_detection_features.cpp pose_estimation.cpp)
 add_executable(AprilOptical ${SOURCE_FILES})
 
 target_link_libraries(AprilOptical pthread apriltag opencv_highgui  ${OpenCV_LIBS})

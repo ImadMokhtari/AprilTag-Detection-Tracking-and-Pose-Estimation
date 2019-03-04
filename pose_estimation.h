@@ -7,6 +7,10 @@ using namespace std;
 
 class Pose_Estimation
 {
+private:
+    vector<Point3f> tag_3d_points;
+    vector<Point3f> camera_pose;
+    Mat rotation_matrix;
 public:
     vector<Point3f> using_solvepnp(Mat src,vector<Point2f> tag_image_points,Mat &rotation,Mat &translation );
     void show_pose_xyz(Mat,Mat);

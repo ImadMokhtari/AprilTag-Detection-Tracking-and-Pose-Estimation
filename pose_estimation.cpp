@@ -1,41 +1,46 @@
 #include "pose_estimation.h"
-#include <opencv2/opencv.hpp>
-
-using namespace std;
-using namespace cv;
 
 
-Pose_Estimation::Pose_Estimation(){
-}
+Pose_Estimation::
+Pose_Estimation(){}
 
-vector<Point3f> Pose_Estimation::using_solvepnp(Mat src,vector<Point2f> tag_image_points,Mat &rotation, Mat &translation )
+vector<Point3f> Pose_Estimation::
+using_solvepnp(Mat src,vector<Point2f> tag_image_points,Mat &rotation, Mat &translation )
 {
-    vector<Point3f> tag_3d_points;
-    vector<Point3f> camera_pose;
-    Mat rotation1;
     tag_3d_points.clear();
     tag_3d_points.push_back(Point3d(0.0f, 0.0f, 0.0f));
-    tag_3d_points.push_back(Point3d(0.0f, 17.2f, 0.0f));
-    tag_3d_points.push_back(Point3d(17.2f, 17.2f, 0.0f));
-    tag_3d_points.push_back(Point3d(17.2f, 0.0f, 0.0f));
+    tag_3d_points.push_back(Point3d(0, 16.4f, 0.0f));
+    tag_3d_points.push_back(Point3d(16.4f, 16.4f, 0.0f));
+    tag_3d_points.push_back(Point3d(16.4f, 0.0f, 0.0f));
 
     Point2d center = Point2d(328.1430,233.6942);
     Mat camera_matrix = (Mat_<double>(3,3) << 712.0027, 0, center.x, 0 , 711.2302, center.y, 0, 0, 1);
     Mat dist_coeffs = (Mat_<double>(4,1)<< 0.1115,-0.3290,-0.0016,-0.0014);
 
-    if(!tag_image_points.empty()){
+    if(tag_image_points.size()>3)
+    {
         solvePnP(tag_3d_points, tag_image_points, camera_matrix, dist_coeffs, rotation, translation,false,SOLVEPNP_ITERATIVE);
-        Rodrigues(rotation,rotation1);//vector to matrix
+        Rodrigues(rotation,rotation_matrix);//vector to matrix
         camera_pose.clear();
 
         for (int i=0;i<tag_3d_points.size();i++)
         {
-            double x =rotation1.at<double>(0,0)*tag_3d_points[i].x+rotation1.at<double>(0,1)*tag_3d_points[i].y+rotation1.at<double>(0,2)*tag_3d_points[i].z+translation.at<double>(0,0);
-            double y =rotation1.at<double>(1,0)*tag_3d_points[i].x+rotation1.at<double>(1,1)*tag_3d_points[i].y+rotation1.at<double>(1,2)*tag_3d_points[i].z+translation.at<double>(0,1);
-            double z =rotation1.at<double>(2,0)*tag_3d_points[i].x+rotation1.at<double>(2,1)*tag_3d_points[i].y+rotation1.at<double>(2,2)*tag_3d_points[i].z+translation.at<double>(0,2);
+            double x =rotation_matrix.at<double>(0,0)*tag_3d_points[i].x+rotation_matrix.at<double>(0,1)*tag_3d_points[i].y+rotation_matrix.at<double>(0,2)*tag_3d_points[i].z+translation.at<double>(0,0);
+            double y =rotation_matrix.at<double>(1,0)*tag_3d_points[i].x+rotation_matrix.at<double>(1,1)*tag_3d_points[i].y+rotation_matrix.at<double>(1,2)*tag_3d_points[i].z+translation.at<double>(0,1);
+            double z =rotation_matrix.at<double>(2,0)*tag_3d_points[i].x+rotation_matrix.at<double>(2,1)*tag_3d_points[i].y+rotation_matrix.at<double>(2,2)*tag_3d_points[i].z+translation.at<double>(0,2);
             camera_pose.push_back(Point3f(x,y,z));
 
         }
+        vector<Point3d> image_point3D;
+        vector<Point2d> image_point2D;
+
+        image_point3D.push_back(Point3d(0,0,50.0));
+
+
+        projectPoints(image_point3D, rotation, translation, camera_matrix, dist_coeffs, image_point2D);
+
+        line(src,tag_image_points[0], image_point2D[0],Scalar(0,255,0), 2);
+
         return camera_pose;
     }
     else
@@ -44,7 +49,8 @@ vector<Point3f> Pose_Estimation::using_solvepnp(Mat src,vector<Point2f> tag_imag
 
 double rad2deg (double angle);
 
-void Pose_Estimation::show_pose_xyz(Mat src,Mat translation)
+void Pose_Estimation::
+show_pose_xyz(Mat src,Mat translation)
 {
     if (!translation.empty())
     {
@@ -71,7 +77,8 @@ void Pose_Estimation::show_pose_xyz(Mat src,Mat translation)
 }
 
 
-void Pose_Estimation::show_pose_rotation(Mat src,Mat rotation)
+void Pose_Estimation::
+show_pose_rotation(Mat src,Mat rotation)
 {
     if (!rotation.empty())
     {
@@ -87,7 +94,7 @@ void Pose_Estimation::show_pose_rotation(Mat src,Mat rotation)
         stream <<"Psi= " << z <<"  ";
 
         string concat = stream.str();
-      //  cout<<concat<<endl;
+
         putText (src,
                  concat,
                  Point(0,src.size().height-10),

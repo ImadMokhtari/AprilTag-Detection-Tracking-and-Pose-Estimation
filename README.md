@@ -1,4 +1,4 @@
-# AprilTags Detection, Tracking and Pose Estimation
+# AprilTags-detection-and-tracking
 A parallel detection and tracking approach for 3D camera pose estimation, using OpenCV.\
 
 Dependencies : 
