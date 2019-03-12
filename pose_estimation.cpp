@@ -40,11 +40,14 @@ using_solvepnp(Mat src,vector<Point2f> tag_image_points,Mat &rotation, Mat &tran
         projectPoints(image_point3D, rotation, translation, camera_matrix, dist_coeffs, image_point2D);
 
         line(src,tag_image_points[0], image_point2D[0],Scalar(0,255,0), 2);
-
+        pose_estimation_failed=false;
         return camera_pose;
     }
     else
+    {
+        pose_estimation_failed=true;
         cout<<"image points are empty"<<endl;
+    }
 }
 
 double rad2deg (double angle);

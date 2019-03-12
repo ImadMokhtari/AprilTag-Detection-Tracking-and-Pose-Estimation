@@ -12,6 +12,8 @@ private:
     vector<Point3f> camera_pose;
     Mat rotation_matrix;
 public:
+    bool pose_estimation_failed=true;
+
     vector<Point3f> using_solvepnp(Mat src,vector<Point2f> tag_image_points,Mat &rotation,Mat &translation );
     void show_pose_xyz(Mat,Mat);
     void show_pose_rotation(Mat src,Mat rotation );

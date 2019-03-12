@@ -32,6 +32,8 @@ public:
     vector<Point2f> Show_Tracking_Homography(Mat src, vector<Point2f>,Mat H);//,vector<Point>next_edges);
     vector<Point2f> Next_with_Homography(vector<Point2f>,Mat H);
     vector<Point2f> OpticalFlow_tracking_box(Mat src,Mat prevgray,Mat src_gray,vector<Point2f> edges);
+    vector<Point2f> OpticalFlow_tracking_box_previous(Mat prevgray,Mat src_gray,vector<Point2f> edges);
+
     Features_Tracking();
 
 };

@@ -8,6 +8,7 @@ Features_Tracking(void){}
 vector<Point2f> Features_Tracking::
 OpticalFlow_Homograhpy(Mat prevgray,Mat src_gray,vector<Point2f> corners,vector<Point2f> corners0,Mat& H)
 {
+    vector<Point2f> next_corners;
     if(corners.size()>0)
     {
         next_corners.resize(corners.size());
@@ -24,7 +25,7 @@ OpticalFlow_Homograhpy(Mat prevgray,Mat src_gray,vector<Point2f> corners,vector<
                              0.05);
 
         if(corners0.size()==next_corners.size())
-        { cout<<"Homography 0\n";
+        {
             H =findHomography (corners0,
                                next_corners,
                                RANSAC,         //method to use
@@ -124,6 +125,7 @@ Show_Tracking_Homography(Mat src,vector<Point2f> tag_points,Mat H)
 vector<Point2f> Features_Tracking::
 OpticalFlow_tracking_box(Mat src,Mat prevgray,Mat src_gray,vector<Point2f> edges)
 {   vector<int> Mask;
+    vector<Point2f> next_edges;
     Mat H;
     if(edges.size()>0)
     {
@@ -170,6 +172,29 @@ OpticalFlow_tracking_box(Mat src,Mat prevgray,Mat src_gray,vector<Point2f> edges
         line(src,Point(next_edges[1].x,next_edges[1].y),Point(next_edges[2].x,next_edges[2].y),Scalar(0,0,255),2);
         line(src,Point(next_edges[2].x,next_edges[2].y),Point(next_edges[3].x,next_edges[3].y),Scalar(0,0,255),2);
         line(src,Point(next_edges[3].x,next_edges[3].y),Point(next_edges[0].x,next_edges[0].y),Scalar(0,0,255),2);
+        return next_edges;
+    }
+}
+
+vector<Point2f> Features_Tracking::
+OpticalFlow_tracking_box_previous(Mat prevgray,Mat src_gray,vector<Point2f> edges)
+{   vector<int> Mask;
+    vector<Point2f> next_edges;
+    Mat H;
+    if(edges.size()>0)
+    {
+        next_edges.resize(edges.size());
+        calcOpticalFlowPyrLK(prevgray,
+                             src_gray,
+                             edges,
+                             next_edges,
+                             status,
+                             err,
+                             Size(21,21),
+                             3,
+                             TermCriteria(TermCriteria::COUNT|TermCriteria::EPS,20,0.03),
+                             0,
+                             0.01);
         return next_edges;
     }
 }
