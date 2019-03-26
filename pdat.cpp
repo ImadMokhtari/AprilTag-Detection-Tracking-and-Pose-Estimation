@@ -10,7 +10,13 @@ pdat::pdat(){}
 void * pdat::
 image_thread()
 {
-    VideoCapture cap(0);
+    VideoCapture cap;
+    cap.open(1);
+    if(!cap.open(1))
+    {
+        cap.open(0);
+        cout << "Opening the default camera !!! \n";
+    }
 
     if(cap.isOpened())
         while(1)
@@ -20,7 +26,6 @@ image_thread()
             {
                 current_image.ID=CurId;
                 Previous_Imgs.push_back (current_image);
-                ////cout<<"prev stampedimg   "<<Previous_Imgs.size()<<endl;
                 CurId++;
             }
         }
@@ -49,28 +54,9 @@ detection()
 
         if(!current_image.Img.empty())
         {
-            //   detection_start=true;
-            //  detection_finished=false;
-
-            /*   if(!Previous_Imgs.empty())
-            {
-                id_det = Previous_Imgs.back().ID;
-                cout<<"---Detectoin_START_ID = " << Detection_ID<<endl;
-                detec_img = Previous_Imgs.back().Img;
-                frame = detec_img.clone();
-            }
-            else
-            {
-                id_det=0;
-                Detection_ID = 0;
-                frame = current_image.Img.clone();
-            }*/
-
             id_det = current_image.ID;
-
-            cout<<"---Detectoin_START_ID = " << id_det<<endl;
-
-            cvtColor(current_image.Img, gray, COLOR_BGR2GRAY);
+            cout<<"\n----****----Detectoin_START_ID = " << id_det << endl;
+                       cvtColor(current_image.Img, gray, COLOR_BGR2GRAY);
             image_u8_t im = { .width = gray.cols,
                               .height = gray.rows,
                               .stride = gray.cols,
@@ -78,14 +64,11 @@ detection()
 
             detections = apriltag_detector_detect(td, &im);
             detected_tags_number=zarray_size(detections);
-
             if(detected_tags_number != 0)
             {
-
                 Detection_ID = id_det;
                 Find_detec=true;
-                cout<<"-------------------------------------------------------------------Detectoin_END_ID = " << Detection_ID<<endl;
-
+                cout<<"---------------------------------------------------Detectoin_END_ID = " << Detection_ID<<endl;
                 for (int i = 0; i < detected_tags_number; i++)
                 {
                     zarray_get(detections, i, &det);
@@ -109,7 +92,6 @@ detection()
                 corners.clear();
                 Find_detec=false;
             }
-            //detection_start=false;
         }
     }
     Tag.Tag_Destroy(getopt,tf,td,detections);
@@ -141,23 +123,17 @@ tracking_current()
     {
         if(prev_track_finished)
         {
-            cout<<"????????Current Track init?????????\n";
+            cout<<"????????????__Current Track init__????????????\n";
             _corners=_next_corners_previous;
             _box_edges=_nedges_previous;
             prev_track_finished=false;
-            //   current_track_init=true;
         }
-
-
         if(!current_image.Img.empty() && current_image.ID != previous_id)
         {
-
             previous_id = current_image.ID;
-
             src = current_image.Img.clone();
             cout<<"**********************************current_trac_ID = " << current_image.ID<<endl;
             cvtColor( src, src_gray, CV_BGR2GRAY );
-
             if(prevgray.empty())
                 src_gray.copyTo(prevgray);
 
@@ -187,7 +163,6 @@ tracking_current()
                 nedges.clear();
                 camera_pose.clear();
             }
-
             _box_edges=nedges;
             _corners=next_corners;
 
@@ -214,16 +189,13 @@ tracking_previous()
         {
             for(int j=0;j < Previous_Imgs.size();j++)
             {
-                if(Previous_Imgs[j].ID == Detection_ID && j>0)
+                if(Previous_Imgs[j].ID == Detection_ID)
                 {
                     Previous_Imgs.erase(Previous_Imgs.begin(),Previous_Imgs.begin()+(j));
-                    //cout << "size after " << Previous_Imgs.size()<<endl;
-                    cout<<"previous serach for ID="<<Detection_ID<<endl;
-
-                    //if(!box_edges.empty() && !corners.empty())//detection_finished)
                     if(detection_finished)
                     {
-                        //cout<<"box edges assertion with success\n";
+                        cout<<"\n previous serach for ID =  "<<Detection_ID<<endl;
+                        cout<<"box edges assertion with success\n";
                         _box_edges_previous=box_edges;
                         _corners_previous=corners;
                         Find_ID=true;
@@ -237,58 +209,30 @@ tracking_previous()
                     }
                 }
             }
-            previous_index=0;
-            while(1)
+
+            previous_index = 0;
+
+            while(Find_ID)
             {
-                if(Find_detec)
+                cvtColor(Previous_Imgs[previous_index].Img , src_gray, CV_BGR2GRAY );
+                cout<<"Previous_trac_ID="<<Previous_Imgs[previous_index].ID<<endl;
+
+                if(prevgray.empty())
+                    src_gray.copyTo(prevgray);
+
+                _next_corners_previous = Track.OpticalFlow_Homograhpy(prevgray,src_gray,_corners_previous,_corners_previous,H);
+                _nedges_previous=Track.OpticalFlow_tracking_box_previous(prevgray,src_gray,_box_edges_previous);
+                _box_edges_previous =_nedges_previous;
+                _corners_previous =_next_corners_previous;
+                //                cout<< "_nedges_previous  \n"<<_nedges_previous<<endl;
+                swap(prevgray,src_gray);
+                previous_index++;
+
+                if( (current_image.ID - Previous_Imgs[previous_index-1].ID) < 1 )
                 {
+                    cout<<"!!!!!!!!!!!!!!!! Prev_Finish !!!!!!!!!!!!!!!!\n";
                     prev_track_finished=true;
-
-                    Find_detec=false;
-                    break;
-                }
-             //   cout<<"DETECTION FINISHED  "<<detection_finished<<endl;
-                if(!Previous_Imgs.empty()  && Find_ID && !_corners_previous.empty() && !_box_edges_previous.empty())
-                {
-                    img = Previous_Imgs[previous_index].Img.clone();
-                    cout<<"Previous_trac_ID="<<Previous_Imgs[previous_index].ID<<endl;
-
-                    previous_index++;
-
-                    //Previous_Imgs.erase(Previous_Imgs.begin());
-                    // cout<<"size after optical flow "<< Previous_Imgs.size()<<endl;
-
-                    cvtColor(img , src_gray, CV_BGR2GRAY );
-
-                    if(prevgray.empty())
-                        src_gray.copyTo(prevgray);
-
-
-
-                    _next_corners_previous = Track.OpticalFlow_Homograhpy(prevgray,src_gray,_corners_previous,_corners_previous,H);
-                    _nedges_previous=Track.OpticalFlow_tracking_box_previous(prevgray,src_gray,_box_edges_previous);
-                    _box_edges_previous =_nedges_previous;
-                    _corners_previous =_next_corners_previous;
-
-                    swap(prevgray,src_gray);
-
-                    //cout<< "(current_image.ID-previous_index].ID   =   "<<current_image.ID <<" ;; "<< Previous_Imgs[previous_index].ID<<endl;
-
-                    if( (current_image.ID - Previous_Imgs[previous_index].ID) < 2  )
-                    {
-
-                        cout<<"!!!!!Prev Finish!!!!!!!!!!!!!!!!!!!!\n";
-                        prev_track_finished=true;
-                        Find_ID=false;
-                        break;
-                    }
-                }
-                else
-                {
-                    //   prev_track_finished = false;
-                    //  current_track_init=false;
                     Find_ID=false;
-                    break;
                 }
             }
         }
