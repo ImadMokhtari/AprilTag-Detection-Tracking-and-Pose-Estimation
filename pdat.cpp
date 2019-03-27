@@ -5,13 +5,13 @@
 pdat::pdat(){}
 
 
-
-
 void * pdat::
 image_thread()
 {
+    Mat frame;
+
     VideoCapture cap;
-    cap.open(1);
+
     if(!cap.open(1))
     {
         cap.open(0);
@@ -21,11 +21,17 @@ image_thread()
     if(cap.isOpened())
         while(1)
         {
-            cap >> current_image.Img;
+            Mat im;
+
+            cap >> current_image.Img ;
+
+            current_image.Img.copyTo(im);
+
             if(!current_image.Img.empty())
             {
-                current_image.ID=CurId;
-                Previous_Imgs.push_back (current_image);
+                current_image.ID = CurId;
+                Previous_Imgs.push_back({im,CurId});
+                cout << Previous_Imgs.back().ID<<endl;
                 CurId++;
             }
         }
@@ -51,12 +57,13 @@ detection()
 
     while(1)
     {
+        //sleep(1);
 
         if(!current_image.Img.empty())
         {
             id_det = current_image.ID;
             cout<<"\n----****----Detectoin_START_ID = " << id_det << endl;
-                       cvtColor(current_image.Img, gray, COLOR_BGR2GRAY);
+            cvtColor(current_image.Img, gray, COLOR_BGR2GRAY);
             image_u8_t im = { .width = gray.cols,
                               .height = gray.rows,
                               .stride = gray.cols,
@@ -67,6 +74,7 @@ detection()
             if(detected_tags_number != 0)
             {
                 Detection_ID = id_det;
+
                 Find_detec=true;
                 cout<<"---------------------------------------------------Detectoin_END_ID = " << Detection_ID<<endl;
                 for (int i = 0; i < detected_tags_number; i++)
@@ -106,7 +114,6 @@ tracking_current()
     Mat src_gray,prevgray;
     vector<Point2f> _corners,_box_edges,_nedges;
     vector<Point3f> camera_pose;
-    uint64_t previous_id;
 
     while(1)
     {
@@ -128,6 +135,7 @@ tracking_current()
             _box_edges=_nedges_previous;
             prev_track_finished=false;
         }
+
         if(!current_image.Img.empty() && current_image.ID != previous_id)
         {
             previous_id = current_image.ID;
@@ -140,6 +148,7 @@ tracking_current()
             next_corners= Track.OpticalFlow_Homograhpy(prevgray,src_gray,_corners,_corners,H);
             nedges=Track.OpticalFlow_tracking_box(src,prevgray,src_gray,_box_edges);
             Track.Show_OpticalFlow(2,src,_corners,next_corners);
+
             if(_box_edges.size()>0)
             {
                 camera_pose=pose.using_solvepnp(src,_box_edges,rotation,translation);
@@ -183,28 +192,25 @@ tracking_previous()
     vector <Point2f> _box_edges_previous,_corners_previous;
     bool Find_ID=false ;
     int previous_index;
+    Features_Tracking Track;
     while (1)
     {
         if(!Previous_Imgs.empty())
         {
-            for(int j=0;j < Previous_Imgs.size();j++)
+            for(int j=0 ; j < Previous_Imgs.size() ; j++)
             {
-                if(Previous_Imgs[j].ID == Detection_ID)
+                if(detection_finished)
                 {
-                    Previous_Imgs.erase(Previous_Imgs.begin(),Previous_Imgs.begin()+(j));
-                    if(detection_finished)
+                    if(Previous_Imgs[j].ID == Detection_ID)
                     {
-                        cout<<"\n previous serach for ID =  "<<Detection_ID<<endl;
+                        Previous_Imgs.erase(Previous_Imgs.begin(),Previous_Imgs.begin()+(j-1));
+
+                        cout<<"\n previous serach for ID =  "<< Detection_ID <<endl;
                         cout<<"box edges assertion with success\n";
-                        _box_edges_previous=box_edges;
-                        _corners_previous=corners;
-                        Find_ID=true;
-                        detection_finished=false;
-                        break;
-                    }
-                    else
-                    {
-                        Find_ID=false;
+                        _box_edges_previous = box_edges;
+                        _corners_previous = corners;
+                        Find_ID = true;
+                        detection_finished = false;
                         break;
                     }
                 }
@@ -224,16 +230,16 @@ tracking_previous()
                 _nedges_previous=Track.OpticalFlow_tracking_box_previous(prevgray,src_gray,_box_edges_previous);
                 _box_edges_previous =_nedges_previous;
                 _corners_previous =_next_corners_previous;
-                //                cout<< "_nedges_previous  \n"<<_nedges_previous<<endl;
+             //   cout<< "_nedges_previous  \n"<<_nedges_previous<<endl;
                 swap(prevgray,src_gray);
-                previous_index++;
 
-                if( (current_image.ID - Previous_Imgs[previous_index-1].ID) < 1 )
+                if( (previous_id - Previous_Imgs[previous_index].ID) < 1 )
                 {
                     cout<<"!!!!!!!!!!!!!!!! Prev_Finish !!!!!!!!!!!!!!!!\n";
                     prev_track_finished=true;
                     Find_ID=false;
                 }
+                previous_index++;
             }
         }
     }
@@ -251,28 +257,28 @@ pdat_start()
     im = pthread_create(&image, NULL,(THREADFUNCPTR) &pdat::image_thread,this);
     if (im)
     {
-        ////cout << "Thread creation failed : " << strerror(im);
+        cout << "Thread creation failed : " << strerror(im);
         exit(-1);
     }
 
     det = pthread_create(&detection, NULL, (THREADFUNCPTR) &pdat::detection,this);
     if (det)
     {
-        ////cout << "Thread creation failed : " << strerror(det);
+        cout << "Thread creation failed : " << strerror(det);
         exit(-1);
     }
 
     track = pthread_create(&tracking, NULL, (THREADFUNCPTR) &pdat::tracking_current,this);
     if (track)
     {
-        ////cout << "Thread creation failed : " << strerror(track);
+        cout << "Thread creation failed : " << strerror(track);
         exit(-1);
     }
 
     track_prev = pthread_create(&tracking_prev, NULL, (THREADFUNCPTR) &pdat::tracking_previous ,this);
     if (track_prev)
     {
-        ////cout << "Thread creation failed : " << strerror(track_prev);
+        cout << "Thread creation failed : " << strerror(track_prev);
         exit(-1);
     }
     pthread_join(image,NULL);

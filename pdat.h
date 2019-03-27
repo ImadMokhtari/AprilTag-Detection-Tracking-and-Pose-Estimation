@@ -5,6 +5,7 @@
 #include "tag_detection_features.h"
 #include "features_tracking.h"
 #include "pose_estimation.h"
+#include<deque>
 
 #include <ctime>
 
@@ -29,8 +30,10 @@ private:
 
 
 public:
+    uint64_t previous_id=0;
+
     uint64_t CurId=1;
-    vector<StampedImg> Previous_Imgs, Prev_detection;
+    deque<StampedImg> Previous_Imgs, Prev_detection;
 
     StampedImg  current_image;
     uint64_t Detection_ID;
