@@ -17,7 +17,7 @@ private:
     vector<Point2f> box_edges,corners,next_corners,nedges,corners0;
     Mat H,rotation,translation,src,frame;
 
-    bool Find_detec=false, detection_start, detection_finished,push_current;
+    bool Find_detec=false, detection_start=false, detection_finished,push_current;
     bool prev_track_finished=false,track_current_init=false,current_track_init=false;
     Features_Tracking Track;
     vector<Point2f> _next_corners_previous,_nedges_previous;
