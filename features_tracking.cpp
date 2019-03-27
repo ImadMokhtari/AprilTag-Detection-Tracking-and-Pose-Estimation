@@ -65,7 +65,7 @@ Show_OpticalFlow(int r, Mat src , vector<Point2f> corners, vector<Point2f> nextc
                         corners[i],     //begin arrow points
                         nextcorners[i], //end arrow points
                         Scalar(0,0,255),//arrow color
-                        3,              //Arrow thickness
+                        2,              //Arrow thickness
                         8,              //line Type
                         0,              //int shift
                         0.3);           //Arrow head length
@@ -87,10 +87,10 @@ Show_OpticalFlow(int r, Mat src , vector<Point2f> corners, vector<Point2f> nextc
 void Features_Tracking::
 Show_Detection(Mat src,vector<Point2f> tag_Points)
 {
-    line(src,Point2f(tag_Points[0].x,tag_Points[0].y),Point2f(tag_Points[1].x,tag_Points[1].y),Scalar(255,0,0),3);
-    line(src,Point2f(tag_Points[1].x,tag_Points[1].y),Point2f(tag_Points[2].x,tag_Points[2].y),Scalar(255,0,0),3);
-    line(src,Point2f(tag_Points[2].x,tag_Points[2].y),Point2f(tag_Points[3].x,tag_Points[3].y),Scalar(255,0,0),3);
-    line(src,Point2f(tag_Points[3].x,tag_Points[3].y),Point2f(tag_Points[0].x,tag_Points[0].y),Scalar(255,0,0),3);
+    line(src,Point2f(tag_Points[0].x,tag_Points[0].y),Point2f(tag_Points[1].x,tag_Points[1].y),Scalar(255,0,0),2);
+    line(src,Point2f(tag_Points[1].x,tag_Points[1].y),Point2f(tag_Points[2].x,tag_Points[2].y),Scalar(255,0,0),2);
+    line(src,Point2f(tag_Points[2].x,tag_Points[2].y),Point2f(tag_Points[3].x,tag_Points[3].y),Scalar(255,0,0),2);
+    line(src,Point2f(tag_Points[3].x,tag_Points[3].y),Point2f(tag_Points[0].x,tag_Points[0].y),Scalar(255,0,0),2);
 }
 
 
@@ -137,7 +137,7 @@ OpticalFlow_tracking_box(Mat src,Mat prevgray,Mat src_gray,vector<Point2f> edges
                              status,
                              err,
                              Size(21,21),
-                             3,
+                             4,
                              TermCriteria(TermCriteria::COUNT|TermCriteria::EPS,20,0.03),
                              0,
                              0.01);
@@ -191,7 +191,7 @@ OpticalFlow_tracking_box_previous(Mat prevgray,Mat src_gray,vector<Point2f> edge
                              status,
                              err,
                              Size(21,21),
-                             3,
+                             4,
                              TermCriteria(TermCriteria::COUNT|TermCriteria::EPS,20,0.03),
                              0,
                              0.01);

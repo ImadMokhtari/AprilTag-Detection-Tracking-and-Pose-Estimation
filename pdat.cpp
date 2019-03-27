@@ -1,40 +1,54 @@
 ﻿#include "pdat.h"
-#include<mutex>
 #include <chrono>
 
-pdat::pdat(){}
+pdat::
+pdat()
+{}
+  /*  this->previous_id = 0;
+    this->Detection_ID = 0;
+    this->CurId = 1;
+    this->end_detection = false;
+    this->Find_detec=false;
+    this->detection_start=false;
+    this->detection_finished=false;
+    this->prev_track_finished=false;
+}*/
 
 
 void * pdat::
 image_thread()
 {
-    string video = "/home/imad/Desktop/Mini_projet/src/Best Videos/8.webm";
-    VideoCapture cap(video);
-    /*
+    // string video = "/home/imad/Desktop/Mini_projet/src/Best Videos/3.webm";
+    // VideoCapture cap(video);
     VideoCapture cap;
 
     if(!cap.open(1))
     {
         cap.open(0);
         cout << "Opening the default camera !!! \n";
-    }*/
+    }
+
+    Mat frame;
     if(cap.isOpened())
         while(1)
         {
-            cap >> current_image.Img ;
-
+            cap >> frame ;
             Mat im;
-
-            current_image.Img.copyTo(im);
-
-            if(!current_image.Img.empty())
+            if(!frame.empty())
             {
+
+                resize(frame, current_image.Img, Size(), 0.75, 0.75);
+
+                current_image.Img.copyTo(im);
                 current_image.ID = CurId;
                 Previous_Imgs.push_back({im,current_image.ID});
                 CurId++;
             }
-            usleep(33333);
-            // usleep(25000);
+            else
+                exit(0);
+
+//            usleep(33333);
+            //usleep(20000);
 
         }
     return NULL;
@@ -183,7 +197,6 @@ tracking_current()
             }
             _box_edges=nedges;
             _corners=next_corners;
-
             imshow( "OpticalFlow", src );
             waitKey(1);
             swap(prevgray,src_gray);
@@ -212,7 +225,7 @@ tracking_previous()
                 {
                     if(Previous_Imgs[j].ID == Detection_ID)
                     {
-                        Previous_Imgs.erase(Previous_Imgs.begin(),Previous_Imgs.begin()+int (j));
+                        Previous_Imgs.erase(Previous_Imgs.begin(),Previous_Imgs.begin()+int (j+1));
                         cout<<"******\n";
                         cout<<"\n previous serach for ID =  "<< Detection_ID <<endl;
                         cout<<"box edges assertion with success\n";
@@ -243,7 +256,7 @@ tracking_previous()
                 _corners_previous =_next_corners_previous;
                 cout<< "_nedges_previous  \n"<<_nedges_previous<<endl;
                 swap(prevgray,src_gray);
-                if(current_image.ID - Previous_Imgs[previous_index].ID < 2 )
+                if(previous_id - Previous_Imgs[previous_index].ID < 1 )
                 {
                     cout<<"!!!!!!!!!!!!!!!! Prev_Finish !!!!!!!!!!!!!!!!\n";
                     cout<<"Previous_track_ID break ="<< Previous_Imgs[previous_index].ID << endl;
@@ -292,10 +305,10 @@ pdat_start()
         cout << "Thread creation failed : " << strerror(track_prev);
         exit(-1);
     }
-    pthread_join(image,NULL);/*
+    pthread_join(image,NULL);
     pthread_join(detection,NULL);
     pthread_join(tracking,NULL);
-    pthread_join(tracking_prev,NULL);*/
+    pthread_join(tracking_prev,NULL);
 }
 
 /*
