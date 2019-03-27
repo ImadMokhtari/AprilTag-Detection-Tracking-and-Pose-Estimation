@@ -14,39 +14,24 @@ class pdat
 {
 
 private:
-    vector<Point2f> box_edges,corners,next_corners,nedges,corners0;
+    vector<Point2f> box_edges,corners,next_corners,nedges,corners0,_next_corners_previous,_nedges_previous;
     Mat H,rotation,translation,src,frame;
-
-    bool Find_detec=false, detection_start=false, detection_finished,push_current;
-    bool prev_track_finished=false,track_current_init=false,current_track_init=false;
-    Features_Tracking Track;
-    vector<Point2f> _next_corners_previous,_nedges_previous;
-    Mat detec_img;
+    bool Find_detec, detection_start, detection_finished, prev_track_finished, end_detection;
     struct StampedImg
     {
         Mat Img;
         uint64_t ID;
     };
 
-
 public:
-    uint64_t previous_id=0;
-
-    uint64_t CurId=1;
-    deque<StampedImg> Previous_Imgs, Prev_detection;
-
+    uint64_t CurId,previous_id,Detection_ID;
+    deque<StampedImg> Previous_Imgs;
     StampedImg  current_image;
-    uint64_t Detection_ID;
-    bool end_detection=false;
 
     void * detection();
     void * image_thread();
-
-    void * image_show();
     void * tracking_current();
     void * tracking_previous();
-    void * tracking_previous_img();
-
     void pdat_start();
     pdat();
 

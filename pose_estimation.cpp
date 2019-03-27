@@ -2,7 +2,9 @@
 
 
 Pose_Estimation::
-Pose_Estimation(){}
+Pose_Estimation(){
+    pose_estimation_failed=true;
+}
 
 vector<Point3f> Pose_Estimation::
 using_solvepnp(Mat src,vector<Point2f> tag_image_points,Mat &rotation, Mat &translation )

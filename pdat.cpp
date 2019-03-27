@@ -3,8 +3,7 @@
 
 pdat::
 pdat()
-{}
-  /*  this->previous_id = 0;
+{  this->previous_id = 0;
     this->Detection_ID = 0;
     this->CurId = 1;
     this->end_detection = false;
@@ -12,14 +11,15 @@ pdat()
     this->detection_start=false;
     this->detection_finished=false;
     this->prev_track_finished=false;
-}*/
+}
 
 
 void * pdat::
 image_thread()
-{
-    // string video = "/home/imad/Desktop/Mini_projet/src/Best Videos/3.webm";
-    // VideoCapture cap(video);
+{/*
+    string video = "/home/imad/Desktop/Mini_projet/src/Best Videos/3.webm";
+    VideoCapture cap(video);
+    */
     VideoCapture cap;
 
     if(!cap.open(1))
@@ -36,7 +36,6 @@ image_thread()
             Mat im;
             if(!frame.empty())
             {
-
                 resize(frame, current_image.Img, Size(), 0.75, 0.75);
 
                 current_image.Img.copyTo(im);
@@ -45,9 +44,9 @@ image_thread()
                 CurId++;
             }
             else
-                exit(0);
+                exit(-1);
 
-//            usleep(33333);
+            usleep(25000);
             //usleep(20000);
 
         }
@@ -107,7 +106,7 @@ detection()
 
                     end_detection=true;
                     detection_finished=true;
-                    cout<<"---------------------------------------------------Detectoin_END_ID = " << Detection_ID<<endl;
+                    //  cout<<"---------------------------------------------------Detectoin_END_ID = " << Detection_ID<<endl;
 
                 }
             }
@@ -128,11 +127,11 @@ detection()
 void * pdat::
 tracking_current()
 {
-    vector<Mat>next_edges;
     Pose_Estimation pose;
     Mat src_gray,prevgray , image;
     vector<Point2f> _corners,_box_edges,_nedges;
     vector<Point3f> camera_pose;
+    Features_Tracking Track;
 
     while(1)
     {
@@ -149,7 +148,7 @@ tracking_current()
     {
         if(prev_track_finished)
         {
-            cout<<"????????????__Current Track init__????????????\n";
+            //  cout<<"????????????__Current Track init__????????????\n";
             _corners=_next_corners_previous;
             _box_edges=_nedges_previous;
             prev_track_finished=false;
@@ -163,7 +162,7 @@ tracking_current()
 
             src = image.clone();
 
-            cout<<"**********************************current_trac_ID = " << current_image.ID<<endl;
+            //    cout<<"**********************************current_trac_ID = " << current_image.ID<<endl;
             cvtColor( src, src_gray, CV_BGR2GRAY );
             if(prevgray.empty())
                 src_gray.copyTo(prevgray);
@@ -226,9 +225,9 @@ tracking_previous()
                     if(Previous_Imgs[j].ID == Detection_ID)
                     {
                         Previous_Imgs.erase(Previous_Imgs.begin(),Previous_Imgs.begin()+int (j+1));
-                        cout<<"******\n";
-                        cout<<"\n previous serach for ID =  "<< Detection_ID <<endl;
-                        cout<<"box edges assertion with success\n";
+                        // cout<<"******\n";
+                        // cout<<"\n previous serach for ID =  "<< Detection_ID <<endl;
+                        // cout<<"box edges assertion with success\n";
                         _box_edges_previous = box_edges;
                         _corners_previous = corners;
                         Find_ID = true;
@@ -245,7 +244,7 @@ tracking_previous()
             while(Find_ID)
             {
                 cvtColor(Previous_Imgs[previous_index].Img , src_gray, CV_BGR2GRAY );
-                cout<<"Previous_track_ID="<<Previous_Imgs[previous_index].ID<<endl;
+                // cout<<"Previous_track_ID="<<Previous_Imgs[previous_index].ID<<endl;
 
                 if(prevgray.empty())
                     src_gray.copyTo(prevgray);
@@ -254,12 +253,12 @@ tracking_previous()
                 _nedges_previous=Track.OpticalFlow_tracking_box_previous(prevgray,src_gray,_box_edges_previous);
                 _box_edges_previous =_nedges_previous;
                 _corners_previous =_next_corners_previous;
-                cout<< "_nedges_previous  \n"<<_nedges_previous<<endl;
+                // cout<< "_nedges_previous  \n"<<_nedges_previous<<endl;
                 swap(prevgray,src_gray);
                 if(previous_id - Previous_Imgs[previous_index].ID < 1 )
                 {
-                    cout<<"!!!!!!!!!!!!!!!! Prev_Finish !!!!!!!!!!!!!!!!\n";
-                    cout<<"Previous_track_ID break ="<< Previous_Imgs[previous_index].ID << endl;
+                    //   cout<<"!!!!!!!!!!!!!!!! Prev_Finish !!!!!!!!!!!!!!!!\n";
+                    //  cout<<"Previous_track_ID break ="<< Previous_Imgs[previous_index].ID << endl;
                     prev_track_finished=true;
                     Find_ID=false;
                 }
