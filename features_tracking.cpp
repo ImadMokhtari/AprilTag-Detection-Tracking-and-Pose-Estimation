@@ -1,60 +1,61 @@
 #include "features_tracking.h"
 
+TermCriteria termcrit(TermCriteria::COUNT|TermCriteria::EPS,20,0.03);
+Size  winSize(21,21);
+vector<int> OutLiersMask;
+vector<uchar> status;
+vector<float> err;
+vector<Point2f> nexttcorners;
 
-Features_Tracking::
-Features_Tracking(void){}
+Features_Tracking::Features_Tracking(void){}
 
-
-vector<Point2f> Features_Tracking::
-OpticalFlow_Homograhpy(Mat prevgray,Mat src_gray,vector<Point2f> corners,vector<Point2f> corners0,Mat& H)
-{
+vector<Point2f> Features_Tracking::OpticalFlow_Homograhpy(Mat prevgray,Mat src_gray,vector<Point2f> corners,vector<Point2f> corners0,Mat& H)
+{	
     if(corners.size()>0)
     {
-        next_corners.resize(corners.size());
+        nexttcorners.resize(corners.size());
         calcOpticalFlowPyrLK(prevgray,
                              src_gray,
                              corners,
-                             next_corners,
+                             nexttcorners,
                              status,
                              err,
-                             Size(21,21),
-                             4,
-                             TermCriteria(TermCriteria::COUNT|TermCriteria::EPS,20,0.03),
+                             winSize,
+                             3,
+                             termcrit,
                              0,
                              0.05);
 
-        if(corners0.size()==next_corners.size())
-        { cout<<"Homography 0\n";
+        if(corners0.size()==nexttcorners.size())
+        {
             H =findHomography (corners0,
-                               next_corners,
+                               nexttcorners,
                                RANSAC,         //method to use
-                               3,
+                               5,
                                OutLiersMask,   //OutputArray mask
                                1000,           //const int maxIters
-                               0.9);
+                               0.5 );
             int j=0;
             for (int i=0;i<OutLiersMask.size();i++)
             {
                 if (OutLiersMask[i]==1)
                 {
-                    next_corners[j]=next_corners[i];
+                    nexttcorners[j]=nexttcorners[i];
                     corners[j]=corners[i];
                     corners0[j]=corners0[i];
                     j++;
                 }
             }
-            next_corners.resize(j);
+            nexttcorners.resize(j);
             corners.resize(j);
             corners0.resize(j);
         }
-        return next_corners;
+        return nexttcorners;
     }
+    
 }
 
-
-
-void Features_Tracking::
-Show_OpticalFlow(int r, Mat src , vector<Point2f> corners, vector<Point2f> nextcorners)
+void Features_Tracking::Show_OpticalFlow(int r, Mat src , vector<Point2f> corners, vector<Point2f> nextcorners)
 {
     for( int i = 0; i < nextcorners.size(); i++ )
     {
@@ -64,10 +65,10 @@ Show_OpticalFlow(int r, Mat src , vector<Point2f> corners, vector<Point2f> nextc
                         corners[i],     //begin arrow points
                         nextcorners[i], //end arrow points
                         Scalar(0,0,255),//arrow color
-                        3,              //Arrow thickness
+                        2,              //Arrow thickness
                         8,              //line Type
                         0,              //int shift
-                        0.3);           //Arrow head length
+                        0.2);           //Arrow head length
 
 
             circle( src,
@@ -80,106 +81,69 @@ Show_OpticalFlow(int r, Mat src , vector<Point2f> corners, vector<Point2f> nextc
 
         }
     }
-
+    /*
+    cout<<"display"<<endl;
+    namedWindow( "OpticalFlow", CV_WINDOW_AUTOSIZE );
+    imshow( "OpticalFlow", src );
+    waitKey(1);*/
 }
 
-void Features_Tracking::
-Show_Detection(Mat src,vector<Point2f> tag_Points)
+void Features_Tracking::Show_Detection(Mat src,vector<Point> tag_Points)
 {
-    line(src,Point2f(tag_Points[0].x,tag_Points[0].y),Point2f(tag_Points[1].x,tag_Points[1].y),Scalar(255,0,0),3);
-    line(src,Point2f(tag_Points[1].x,tag_Points[1].y),Point2f(tag_Points[2].x,tag_Points[2].y),Scalar(255,0,0),3);
-    line(src,Point2f(tag_Points[2].x,tag_Points[2].y),Point2f(tag_Points[3].x,tag_Points[3].y),Scalar(255,0,0),3);
-    line(src,Point2f(tag_Points[3].x,tag_Points[3].y),Point2f(tag_Points[0].x,tag_Points[0].y),Scalar(255,0,0),3);
+    line(src,Point(tag_Points[0].x,tag_Points[0].y),Point(tag_Points[1].x,tag_Points[1].y),Scalar(255,0,0),3);
+    line(src,Point(tag_Points[1].x,tag_Points[1].y),Point(tag_Points[2].x,tag_Points[2].y),Scalar(255,0,0),3);
+    line(src,Point(tag_Points[2].x,tag_Points[2].y),Point(tag_Points[3].x,tag_Points[3].y),Scalar(255,0,0),3);
+    line(src,Point(tag_Points[3].x,tag_Points[3].y),Point(tag_Points[0].x,tag_Points[0].y),Scalar(255,0,0),3);
 }
-
-
-vector<Point2f> Features_Tracking::
-Show_Tracking_Homography(Mat src,vector<Point2f> tag_points,Mat H)
+/*
+void Features_Tracking::Show_Tracking(Mat src,vector<Point> tag_points,Mat H)
 {
+    vector<Point> track_h;
     if(!H.empty())
     {
-        pred_edge.clear();
-        next_edges.clear();
-        next_points.clear();
+        track_h.clear();
+        Mat pt1 = (Mat_<double>(3,1) << tag_points[0].x, tag_points[0].y, 1);
+        Mat pt2 = H * pt1;
+        // Continuer le travail........
 
-        for (int i=0;i<4;i++)
+        pt2 /= pt2.at<double>(2);
+        Point end( (int) (pt2.at<double>(0)), (int) pt2.at<double>(1));
+        Point end0=end;
+        track_h.push_back(end);
+        for (size_t i = 1; i < tag_points.size(); i++)
         {
-            pred.push_back(Point3f(tag_points[i].x,tag_points[i].y,1));
-            Mat edge1 = (Mat_<double>(3,1)<<pred.at<float>(i,0),pred.at<float>(i,1),1);
-            Mat edge11=H*edge1;
-            next_points.push_back(edge11);
-            Point e1((int) edge11.at<double>(0), (int) edge11.at<double>(1));
-            next_edges.push_back(Point2f((int) edge11.at<double>(0), (int) edge11.at<double>(1)));
-        }
+            Mat pt1 = (Mat_<double>(3,1) << tag_points[i].x, tag_points[i].y, 1);
+            Mat pt2 = H * pt1;
+            // Continuer le travail........
+            cout<<"pt1:\n"<<pt1<<endl;
+            cout<<"pt2:\n"<<pt1<<endl;
 
-        line(src,next_edges[0],next_edges[1],Scalar(0,255,0), 2);
-        line(src,next_edges[1],next_edges[2],Scalar(0,255,0), 2);
-        line(src,next_edges[2],next_edges[3],Scalar(0,255,0), 2);
-        line(src,next_edges[3],next_edges[0],Scalar(0,255,0), 2);
-        return next_edges;
-    }
-}
-
-
-vector<Point2f> Features_Tracking::
-OpticalFlow_tracking_box(Mat src,Mat prevgray,Mat src_gray,vector<Point2f> edges)
-{   vector<int> Mask;
-    Mat H;
-    if(edges.size()>0)
-    {
-        next_edges.resize(edges.size());
-        calcOpticalFlowPyrLK(prevgray,
-                             src_gray,
-                             edges,
-                             next_edges,
-                             status,
-                             err,
-                             Size(21,21),
-                             3,
-                             TermCriteria(TermCriteria::COUNT|TermCriteria::EPS,20,0.03),
-                             0,
-                             0.01);
-        /*        cout<<"******************************************"<<endl;
-  if(edges.size()==next_edges.size())
-        {
-            cout<<" ------------------------------------------"<<endl;
-            cout<<"next_edges size : "<<next_edges.size()<<endl;
-
-            H =findHomography (edges,
-                               next_edges,
-                               RANSAC,         //method to use
-                               3,
-                               Mask,   //OutputArray mask
-                               500,           //const int maxIters
-                               0.9);
-            int j=0;
-            for (int i=0;i<Mask.size();i++)
+            pt2 /= pt2.at<double>(2);
+            Point end1( (int) (pt2.at<double>(0)), (int) pt2.at<double>(1) );
+            track_h.push_back(end1);
+            line(src, end, end1, Scalar(0,0,255), 2);
+            end=end1;
+            if(i==3)
             {
-                if (Mask[i]==1)
-                {
-                    next_edges[j]=next_edges[i];
-                    edges[j]=edges[i];
-
-                    j++;
-                }
+                line(src, end1, end0,Scalar(0,0,255), 2);
             }
-            next_edges.resize(j);
-            edges.resize(j);
-        }*/
-        line(src,Point(next_edges[0].x,next_edges[0].y),Point(next_edges[1].x,next_edges[1].y),Scalar(0,0,255),2);
-        line(src,Point(next_edges[1].x,next_edges[1].y),Point(next_edges[2].x,next_edges[2].y),Scalar(0,0,255),2);
-        line(src,Point(next_edges[2].x,next_edges[2].y),Point(next_edges[3].x,next_edges[3].y),Scalar(0,0,255),2);
-        line(src,Point(next_edges[3].x,next_edges[3].y),Point(next_edges[0].x,next_edges[0].y),Scalar(0,0,255),2);
-        return next_edges;
+
+            //namedWindow( "OpticalFlow", CV_WINDOW_AUTOSIZE );
+            //imshow( "OpticalFlow", src );
+           // waitKey(0);
+        }
+        cout<<"track_H:\n"<<track_h<<endl;
     }
-}
+}*/
 
-vector<Point2f> Features_Tracking::
-Next_with_Homography(vector<Point2f> tag_points,Mat H)//,vector<Point>next_edges)
+vector<Mat> Features_Tracking::Show_Tracking(Mat src,vector<Point> tag_points,Mat H)//,vector<Point>next_edges)
 {
-    vector<Point2f> next_edges,next_corners;
 
-    if(!H.empty() && !tag_points.empty())
+    vector <Point3f> pred_edge;
+    Mat pred;
+    vector<Mat> next_points;
+    vector<Point>next_edges;
+    if(!H.empty())
     {
         pred_edge.clear();
         next_edges.clear();
@@ -194,6 +158,67 @@ Next_with_Homography(vector<Point2f> tag_points,Mat H)//,vector<Point>next_edges
             Point e1((int) edge11.at<double>(0), (int) edge11.at<double>(1));
             next_edges.push_back(Point((int) edge11.at<double>(0), (int) edge11.at<double>(1)));
         }
+
+        line(src,next_edges[0],next_edges[1],Scalar(0,0,255), 2);
+        line(src,next_edges[1],next_edges[2],Scalar(0,0,255), 2);
+        line(src,next_edges[2],next_edges[3],Scalar(0,0,255), 2);
+        line(src,next_edges[3],next_edges[0],Scalar(0,0,255), 2);
+        return next_points;
+    }
+}
+
+
+vector<Point2f> next_edges;
+vector<Point2f> Features_Tracking::OpticalFlow_tracking_box(Mat src,Mat prevgray,Mat src_gray,vector<Point2f> edges)
+{
+    TermCriteria termcrit(TermCriteria::COUNT|TermCriteria::EPS,20,0.03);
+    Size  winSize(21,21);
+    vector<int> OutLiersMask;
+    vector<uchar> status;
+    vector<float> err;
+    if(edges.size()>0)
+    {
+        next_edges.resize(edges.size());
+        calcOpticalFlowPyrLK(prevgray,
+                             src_gray,
+                             edges,
+                             next_edges,
+                             status,
+                             err,
+                             winSize,
+                             3,
+                             termcrit,
+                             0,
+                             0.01);
+
+
+        vector< Point> contour;
+        contour.push_back(Point(next_edges[0].x,next_edges[0].y));
+        contour.push_back(Point(next_edges[1].x,next_edges[1].y));
+        contour.push_back(Point(next_edges[2].x,next_edges[2].y));
+        contour.push_back(Point(next_edges[3].x,next_edges[3].y));
+
+        const Point *pts;
+        int npts;
+
+        pts = (const cv::Point*) Mat(contour).data;
+        npts = Mat(contour).rows;
+        polylines(src, &pts, &npts, 1, false, Scalar(0,255, 0));
+        /*
+        if(next_edges.size()>0)
+
+            polylines 	( 	src,
+                            next_edges,
+                            true,
+                            Scalar(255,0,0),
+                            2,//thikness
+                            LINE_8
+                            );
+        */
+        line(src,Point(next_edges[0].x,next_edges[0].y),Point(next_edges[1].x,next_edges[1].y),Scalar(0,0,255),2);
+        line(src,Point(next_edges[1].x,next_edges[1].y),Point(next_edges[2].x,next_edges[2].y),Scalar(0,0,255),2);
+        line(src,Point(next_edges[2].x,next_edges[2].y),Point(next_edges[3].x,next_edges[3].y),Scalar(0,0,255),2);
+        line(src,Point(next_edges[3].x,next_edges[3].y),Point(next_edges[0].x,next_edges[0].y),Scalar(0,0,255),2);
         return next_edges;
     }
 }

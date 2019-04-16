@@ -2,7 +2,9 @@
 
 
 Pose_Estimation::
-Pose_Estimation(){}
+Pose_Estimation(){
+    pose_estimation_failed=true;
+}
 
 vector<Point3f> Pose_Estimation::
 using_solvepnp(Mat src,vector<Point2f> tag_image_points,Mat &rotation, Mat &translation )
@@ -13,9 +15,9 @@ using_solvepnp(Mat src,vector<Point2f> tag_image_points,Mat &rotation, Mat &tran
     tag_3d_points.push_back(Point3d(16.4f, 16.4f, 0.0f));
     tag_3d_points.push_back(Point3d(16.4f, 0.0f, 0.0f));
 
-    Point2d center = Point2d(328.1430,233.6942);
-    Mat camera_matrix = (Mat_<double>(3,3) << 712.0027, 0, center.x, 0 , 711.2302, center.y, 0, 0, 1);
-    Mat dist_coeffs = (Mat_<double>(4,1)<< 0.1115,-0.3290,-0.0016,-0.0014);
+    Point2d center = Point2d(252.8849,191.9539);
+    Mat camera_matrix = (Mat_<double>(3,3) << 681.6268, 0, center.x, 0 , 676.5015, center.y, 0, 0, 1);
+    Mat dist_coeffs = (Mat_<double>(4,1)<< 0.2930,-1.2787,-0.0396,-0.0593);
 
     if(tag_image_points.size()>3)
     {
@@ -40,11 +42,14 @@ using_solvepnp(Mat src,vector<Point2f> tag_image_points,Mat &rotation, Mat &tran
         projectPoints(image_point3D, rotation, translation, camera_matrix, dist_coeffs, image_point2D);
 
         line(src,tag_image_points[0], image_point2D[0],Scalar(0,255,0), 2);
-
+        pose_estimation_failed=false;
         return camera_pose;
     }
     else
+    {
+        pose_estimation_failed=true;
         cout<<"image points are empty"<<endl;
+    }
 }
 
 double rad2deg (double angle);
@@ -115,4 +120,3 @@ double rad2deg (double angle)
     angle=(angle * 180)/pi;
     return angle;
 }
-
