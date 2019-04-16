@@ -1,21 +1,85 @@
-#include "pdat.h"
+﻿#include "pdat.h"
+#include <chrono>
 
-pdat::pdat(){}
+pdat::
+pdat()
+{  this->previous_id = 0;
+    this->Detection_ID = 0;
+    this->CurId = 1;
+    this->end_detection = false;
+    this->Find_detec=false;
+    this->detection_start=false;
+    this->detection_finished=false;
+    this->prev_track_finished=false;
+}
+
+vector<Mat> image;
+int ni=1,nii=ni;
+int nf=260;
 
 void * pdat::
 image_thread()
 {
-    VideoCapture cap(1);
-    if(cap.isOpened())
-        while(1)
-            cap >> current_image;
+    //string video = "/home/imad/Desktop/Mini_projet/src/Best Videos/14.webm";
 
+    // string video = "/home/imad/Desktop/video_pfe/pc5.webm";
+
+    // VideoCapture cap(video);
+    /*
+    VideoCapture cap;
+
+    if(!cap.open(1))
+    {
+        cap.open(0);
+        cout << "Opening the default camera !!! \n";
+    }
+*/
+
+    image.clear();
+
+    for (int i=ni;i<=nf;i++)
+    {
+        auto result ="/home/imad/Desktop/video_pfe/images_pc5*/" +to_string(i)+".png";
+        image.push_back(imread(result));
+
+        cout<<"imgs  "<<image.size()<<endl;
+    }
+
+    Mat frame;
+    int i=1;
+    // if(cap.isOpened())
+
+    while(1)
+    {
+        //cap >> frame ;
+        Mat im;
+
+        //resize(frame, current_image.Img, Size(), 1, 1);
+        usleep(41666);
+        image[ni-nii].copyTo(current_image.Img);
+        ni++;
+
+        if(!current_image.Img.empty())
+        {
+            current_image.Img.copyTo(im);
+            current_image.ID = CurId;
+            Previous_Imgs.push_back({im,current_image.ID});
+            CurId++;
+        }
+        else
+            exit(-1);
+
+        // usleep(41666);
+        // usleep(20000);
+
+    }
     return NULL;
 }
 
 void * pdat::
 detection()
 {
+
     Tag_Detection_Features Tag;
     Mat  gray,frame;
     zarray_t *detections;
@@ -26,12 +90,18 @@ detection()
     tf = tag36h11_create();
     apriltag_detector_t *td = apriltag_detector_create();
     Tag.Tag_Define(getopt,tf,td);
+    detection_start=false;
+    uint64_t id_det;
 
     while(1)
     {
-        if(!current_image.empty())
+        if(!current_image.Img.empty())
         {
-            frame=current_image.clone();
+
+            current_image.Img.copyTo(frame);
+            id_det = current_image.ID ;
+            detection_start=true;
+            //cout<<"\n----****----Detectoin_START_ID = " << id_det << endl;
             cvtColor(frame, gray, COLOR_BGR2GRAY);
             image_u8_t im = { .width = gray.cols,
                               .height = gray.rows,
@@ -41,6 +111,10 @@ detection()
             detections = apriltag_detector_detect(td, &im);
             detected_tags_number=zarray_size(detections);
             if(detected_tags_number != 0)
+            {
+                Detection_ID = id_det;
+
+                Find_detec=true;
                 for (int i = 0; i < detected_tags_number; i++)
                 {
                     zarray_get(detections, i, &det);
@@ -52,10 +126,17 @@ detection()
 
                     corners =Tag.Tag_Calculate_Features(gray,box_edges);
                     corners0=corners;
-                    Find_detec=true;
+
+                    end_detection=true;
+                    detection_finished=true;
+                    // cout<<"---------------------------------------------------Detectoin_END_ID = " << Detection_ID<<endl;
+
                 }
+            }
             else
             {
+                id_det=0;
+                Detection_ID = 0 ;
                 box_edges.clear();
                 corners.clear();
                 Find_detec=false;
@@ -67,44 +148,81 @@ detection()
 }
 
 void * pdat::
-tracking_thread()
+tracking_current()
 {
-    vector<Mat>next_edges;
     Pose_Estimation pose;
-    Mat src_gray,prevgray;
-    vector<Point2f> _corners,_box_edges,_nedges;//corners0;
+    Mat src_gray,prevgray , image;
+    vector<Point2f> _corners,_box_edges,_nedges;
     vector<Point3f> camera_pose;
+    Features_Tracking Track;
+    int k;
+    ofstream Time,translate,translatedetect;
+
+
+    translate.open("/home/imad/Desktop/video_pfe/evaluation results/PDAT Amelioré/translation.csv");
+    translatedetect.open("/home/imad/Desktop/video_pfe/evaluation results/PDAT Amelioré/translationdetection.csv");
+    Time.open("/home/imad/Desktop/video_pfe/evaluation results/PDAT Amelioré/Time.csv");
 
     while(1)
     {
         if(Find_detec)
         {
-            _corners = corners;
-            _box_edges = box_edges;
-            Find_detec = false;
+            previous_id = current_image.ID;
+            _corners=corners;
+            _box_edges=box_edges;
+            break;
         }
-        if(!current_image.empty())
+    }
+    k=0;
+    while(1)
+    {
+        //k++;
+        if(prev_track_finished)
         {
-            src=current_image.clone();
+            //cout<<"????????????__Current Track init__????????????\n";
+            _corners=_next_corners_previous;
+            _box_edges=_nedges_previous;
+            prev_track_finished=false;
+        }
+
+        if(!current_image.Img.empty() && current_image.ID != previous_id)
+        {
+            current_image.Img.copyTo(image);
+            previous_id = current_image.ID;
+
+            src = image.clone();
+
+            cout<<"**********************************current_trac_ID = " << current_image.ID<<endl;
+            cout<< current_image.ID<<endl;
+
             cvtColor( src, src_gray, CV_BGR2GRAY );
             if(prevgray.empty())
                 src_gray.copyTo(prevgray);
 
             next_corners= Track.OpticalFlow_Homograhpy(prevgray,src_gray,_corners,_corners,H);
-            cout<<next_corners<<endl;
-            cout<<"size : "<<next_corners.size()<<endl;
             nedges=Track.OpticalFlow_tracking_box(src,prevgray,src_gray,_box_edges);
             Track.Show_OpticalFlow(2,src,_corners,next_corners);
-            if(_box_edges.size()>0)
+
+            if(_box_edges.size() > 0)
             {
-                camera_pose=pose.using_solvepnp(src,_box_edges,rotation,translation);
-                pose.show_pose_xyz(src,translation);
-                pose.show_pose_rotation(src,rotation);
+                cout<<"k  "<< ++k<<endl;
+                camera_pose = pose.using_solvepnp(src,_box_edges,rotation,translation);
+                translate <<current_image.ID<<","<< translation.at<double>(0,0)<<","<<translation.at<double>(0,1)<<","<<translation.at<double>(0,2)<<","<<endl;
+
+                if(!pose.pose_estimation_failed)
+                {
+                    pose.show_pose_xyz(src,translation);
+                    pose.show_pose_rotation(src,rotation);
+                }
                 if(Find_detec)
                 {
                     Track.Show_Detection(src,box_edges);
+                    Find_detec=false;
                 }
             }
+            else
+                translate<<current_image.ID<<","<<0<<","<<0<<","<<0<<","<<endl;
+
             if( box_edges.empty() && next_corners.size() < 7)
             {
                 _box_edges.clear();
@@ -114,27 +232,90 @@ tracking_thread()
                 nedges.clear();
                 camera_pose.clear();
             }
+
             _box_edges=nedges;
             _corners=next_corners;
-
-            namedWindow( "OpticalFlow", CV_WINDOW_AUTOSIZE);
             imshow( "OpticalFlow", src );
             waitKey(1);
-
             swap(prevgray,src_gray);
+        }
+
+    }
+    return NULL;
+}
+
+
+void * pdat::
+tracking_previous()
+{
+    Mat img , src_gray,prevgray;
+    vector <Point2f> _box_edges_previous,_corners_previous;
+    bool Find_ID=false ;
+    uint64_t previous_index;
+    Features_Tracking Track;
+
+    while (1)
+    {
+        if(!Previous_Imgs.empty() && !prev_track_finished)
+        {
+            for(uint64_t j = 0 ; j < Previous_Imgs.size() ; j++)
+            {
+                if(detection_finished)
+                {
+                    if(Previous_Imgs[j].ID == Detection_ID)
+                    {
+                        Previous_Imgs.erase(Previous_Imgs.begin(),Previous_Imgs.begin()+int (j+1));
+                        // cout<<"******\n";
+                        // cout<<"\n previous serach for ID =  "<< Detection_ID <<endl;
+                        // cout<<"box edges assertion with success\n";
+                        _box_edges_previous = box_edges;
+                        _corners_previous = corners;
+                        Find_ID = true;
+                        detection_finished = false;
+                        break;
+                    }
+                    else
+                        Find_ID = false;
+                }
+            }
+
+            previous_index = 0;
+
+            while(Find_ID)
+            {
+                cvtColor(Previous_Imgs[previous_index].Img , src_gray, CV_BGR2GRAY );
+                // cout<<"Previous_track_ID="<<Previous_Imgs[previous_index].ID<<endl;
+
+                if(prevgray.empty())
+                    src_gray.copyTo(prevgray);
+
+                _next_corners_previous = Track.OpticalFlow_Homograhpy(prevgray,src_gray,_corners_previous,_corners_previous,H);
+                _nedges_previous=Track.OpticalFlow_tracking_box_previous(prevgray,src_gray,_box_edges_previous);
+                _box_edges_previous =_nedges_previous;
+                _corners_previous =_next_corners_previous;
+                // cout<< "_nedges_previous  \n"<<_nedges_previous<<endl;
+                swap(prevgray,src_gray);
+                if(previous_id - Previous_Imgs[previous_index].ID < 1 )
+                {
+                    //   cout<<"!!!!!!!!!!!!!!!! Prev_Finish !!!!!!!!!!!!!!!!\n";
+                    //  cout<<"Previous_track_ID break ="<< Previous_Imgs[previous_index].ID << endl;
+                    prev_track_finished=true;
+                    Find_ID=false;
+                }
+                previous_index++;
+            }
         }
     }
     return NULL;
 }
 
 
-
 void pdat::
 pdat_start()
 {
     typedef void * (*THREADFUNCPTR)(void *);
-    pthread_t image,detection,tracking;
-    int im,det,track;
+    pthread_t image,detection,tracking,tracking_prev;
+    int im,det,track,track_prev,track_prev_img;
 
     im = pthread_create(&image, NULL,(THREADFUNCPTR) &pdat::image_thread,this);
     if (im)
@@ -150,12 +331,28 @@ pdat_start()
         exit(-1);
     }
 
-    track = pthread_create(&tracking, NULL, (THREADFUNCPTR) &pdat::tracking_thread,this);
+    track = pthread_create(&tracking, NULL, (THREADFUNCPTR) &pdat::tracking_current,this);
     if (track)
     {
         cout << "Thread creation failed : " << strerror(track);
         exit(-1);
     }
 
+    track_prev = pthread_create(&tracking_prev, NULL, (THREADFUNCPTR) &pdat::tracking_previous ,this);
+    if (track_prev)
+    {
+        cout << "Thread creation failed : " << strerror(track_prev);
+        exit(-1);
+    }
     pthread_join(image,NULL);
+    pthread_join(detection,NULL);
+    pthread_join(tracking,NULL);
+    pthread_join(tracking_prev,NULL);
 }
+
+/*
+uint64_t unix_timestamp()
+{
+    chrono::high_resolution_clock m_clock;
+    return chrono::duration_cast<chrono::microseconds>(m_clock.now().time_since_epoch()).count();
+}*/
