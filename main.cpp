@@ -23,8 +23,6 @@ mutex cap_mutex;
 int siz;
 
 
-int ni=1,nii=ni;
-int nf=260;
 
 void *detectionv(void *i);
 void *trackingv(void *i);
@@ -42,20 +40,31 @@ StampedImg image;
 uint64_t CurId = 1;
 
 
+int ni=1 ,nii=ni;
+int nf=310;
+
 int main()
 {
     int rc,rct;
     pthread_t detection,tracking;
-
-
+    /*
+    string video = "/home/imad/Desktop/video_pfe/videos/pc13.webm";
+    VideoCapture cap(video);
+    */  
     for(int i=ni;i<=nf;i++)
     {
-        auto result ="/home/imad/Desktop/video_pfe/images_pc5*/" +to_string(i)+".png";
-        image.Img = imread(result);
+        Mat im;
+        auto result ="/home/imad/Desktop/video_pfe/videos/images_pc13/" +to_string(i)+".png";
+        Mat outImg;
+        resize(imread(result), outImg, cv::Size(), 0.75, 0.75);
+
+        outImg.copyTo(im);
+      //  im = image.Img.clone();
         image.ID = CurId;
-        Imgs_vector.push_back(image);
+        Imgs_vector.push_back({im,image.ID});
         CurId++;
-        cout<<"vector im size  "<< Imgs_vector.size() << endl;
+        cout<<"vector im size  "<< Imgs_vector.size() <<"       img size   "<<im.size() << endl;
+        //   usleep(1000);
     }
     /*
     for(int i=0; i <Imgs_vector.size(); i++)
@@ -64,7 +73,6 @@ int main()
         waitKey(30);
         cout<<"ID is "<<Imgs_vector[i].ID<<endl;
     }*/
-
     rc = pthread_create(&detection, NULL, detectionv, (void*)1);
     if (rc)
     {
@@ -111,10 +119,9 @@ void *detectionv(void *i)
         {
             while (detec)
             {
-                //cap_mutex.lock();
-              //  frame=image[ni-nii].clone();
                 Imgs_vector[ni-nii].Img.copyTo(frame);
-                //cap_mutex.unlock();
+
+                cout<< "detection id : "<< Imgs_vector[ni-nii].ID<<endl;
                 if(!frame.empty())
                 {
                     cvtColor(frame, gray, COLOR_BGR2GRAY);
@@ -188,96 +195,95 @@ void *trackingv(void *i)
     vector<Point3f> camera_pose;
     clock_t start,end;
     Features_Tracking Track;
-/*
-    translate.open("/home/imad/Desktop/video_pfe/evaluation results/Tracking/translation.csv");
-    translatedetect.open("/home/imad/Desktop/video_pfe/evaluation results/Tracking/translationdetection.csv");
-    Time.open("/home/imad/Desktop/video_pfe/evaluation results/Tracking/Time.csv");
-  */
-    // PDAT
-    translate.open("/home/imad/Desktop/video_pfe/evaluation results/PDAT/translation.csv");
-    translatedetect.open("/home/imad/Desktop/video_pfe/evaluation results/PDAT/translationdetection.csv");
-    Time.open("/home/imad/Desktop/video_pfe/evaluation results/PDAT/Time.csv");
 
-  int n=4,nf;
+    translate.open("/home/imad/Desktop/video_pfe/evaluation results/tracking/translation_tracking.csv");
+    Time.open("/home/imad/Desktop/video_pfe/evaluation results/tracking/Time_tracking.csv");
+
+    // PDAT
+/*
+    translate.open("/home/imad/Desktop/video_pfe/evaluation results/pdat/translation_pdat.csv");
+    Time.open("/home/imad/Desktop/video_pfe/evaluation results/pdat/Time_pdat.csv");
+*/
+    int n=4,nf;
 
     while(1)
     {
-            nf=0;
-            if(Detection_finished)
-                while(nf!=n)
+        nf = 5;
+        if(Detection_finished)
+            while(nf!=n)
+            {
+                Imgs_vector[ni-nii].Img.copyTo(src);
+
+                cout<< "tracking id : "<<Imgs_vector[ni-nii].ID<<endl;
+                waitKey(1);
+                cout<<nf++<<endl;
+
+                if(!src.empty())
                 {
-                    Imgs_vector[ni-nii].Img.copyTo(src);
-
-                    waitKey(1);
-
-                    nf++;
-                    start=clock();
-
-                    if(!src.empty())
+                    if(flag)
                     {
+                        corners_t.resize(size_c);
+                        corners_t=corners;
+                        corners0_t.resize(size_c);
+                        corners0_t=corners0;
+                        next_corners.resize(size_c);
+                        flag=false;
+                    }
+                    cvtColor( src, src_gray, CV_BGR2GRAY );
+                    if(prevgray.empty())
+                        src_gray.copyTo(prevgray);
 
-                        if(flag)
-                        {
-                            corners_t.resize(size_c);
-                            corners_t=corners;
-                            corners0_t.resize(size_c);
-                            corners0_t=corners0;
-                            next_corners.resize(size_c);
-                            flag=false;
-                        }
-                        cvtColor( src, src_gray, CV_BGR2GRAY );
-                        if(prevgray.empty())
-                            src_gray.copyTo(prevgray);
+                    if(!not_detect )
+                    {
+                        start=clock();
 
-                        if(!not_detect )
-                        {
-                            next_corners= Track.OpticalFlow_Homograhpy(prevgray,src_gray,corners_t,corners0_t,H);
-                            nedges=Track.OpticalFlow_tracking_box(src,prevgray,src_gray,box_edges);
+                        next_corners= Track.OpticalFlow_Homograhpy(prevgray,src_gray,corners_t,corners0_t,H);
+                        nedges = Track.OpticalFlow_tracking_box(src,prevgray,src_gray,box_edges);
 
-                            if(box_edges.size()>0)
-                            {
-                                Track.Show_OpticalFlow(2,src,corners_t,next_corners);
-                                corners_t.resize(next_corners.size());
-
-                                camera_pose=pose.using_solvepnp(src,box_edges,rotation,translation);
-                                pose.show_pose_xyz(src,translation);
-                                pose.show_pose_rotation(src,rotation);
-
-                                translate<<Imgs_vector[ni-nii].ID<<","<<translation.at<double>(0,0)<<","<<translation.at<double>(0,1)<<","<<translation.at<double>(0,2)<<","<<endl;
-                                if(Find_detec)
-                                {
-                                    translatedetect<<translation.at<double>(0,0)<<","<<translation.at<double>(0,1)<<","<<translation.at<double>(0,2)<<","<<endl;
-                                    Track.Show_Detection(src,tag_points);
-                                    Find_detec=0;
-                                }
-                                not_detect=false;
-                            }
-                            else
-                                translate<<Imgs_vector[ni-nii].ID<<","<<0<<","<<0<<","<<0<<","<<endl;
-                        }
-                        else
-                        {
-                            translate<<Imgs_vector[ni-nii].ID<<","<<0<<","<<0<<","<<0<<","<<endl;
-
-                            corners_t.clear();
-                            corners0_t.clear();
-                            next_corners.clear();
-                            nedges.clear();
-                        }
-                        box_edges=nedges;
-                        corners_t=next_corners;
                         end=clock()-start;
 
-                        imshow( "OpticalFlow", src );
-                        //  auto result ="/home/imad/Desktop/Mini_projet/src/sequence/13 MASTER Algo/" +to_string( ni )+".png";
-                        //  imwrite(result,src);
-                        waitKey(15);
-                        swap(prevgray,src_gray);
-                        ni++;
+                        if(box_edges.size()>0)
+                        {
+                            Track.Show_OpticalFlow(2,src,corners_t,next_corners);
+                            corners_t.resize(next_corners.size());
+
+                            camera_pose=pose.using_solvepnp(src,box_edges,rotation,translation);
+                            pose.show_pose_xyz(src,translation);
+                            pose.show_pose_rotation(src,rotation);
+
+                            translate << Imgs_vector[ni-nii].ID <<","<<translation.at<double>(0,0)<<","<<translation.at<double>(0,1)<<","<<translation.at<double>(0,2)<<","<<endl;
+                            if(Find_detec)
+                            {
+                                translatedetect<<translation.at<double>(0,0)<<","<<translation.at<double>(0,1)<<","<<translation.at<double>(0,2)<<","<<endl;
+                                Track.Show_Detection(src,tag_points);
+                                Find_detec=0;
+                            }
+                            not_detect=false;
+                        }
+
                     }
-                    end=clock()-start;
-                    Time<<2.5<<','<<(float)end/CLOCKS_PER_SEC<<','<<endl;
+                    else
+                    {
+                        corners_t.clear();
+                        corners0_t.clear();
+                        next_corners.clear();
+                        nedges.clear();
+                    }
+                    box_edges=nedges;
+                    corners_t=next_corners;
+                    //  auto result ="/home/imad/Desktop/Mini_projet/src/sequence/13 MASTER Algo/" +to_string( ni )+".png";
+                    // imwrite(result,src);
+                    //   namedWindow("OpticalFlow" , CV_WINDOW_OPENGL);
+                    imshow( "OpticalFlow", src );
+                    waitKey(20);
+                    swap(prevgray,src_gray);
+                    ni++;
                 }
+                Time<<2.5<<','<<(float)end/CLOCKS_PER_SEC<<','<<endl;
+
+                if(Imgs_vector[ni-nii].ID == 0)
+                    exit(-1);
+            }
         begin_detect=true;
 
     }

@@ -11,9 +11,16 @@ using_solvepnp(Mat src,vector<Point2f> tag_image_points,Mat &rotation, Mat &tran
 {
     tag_3d_points.clear();
     tag_3d_points.push_back(Point3d(0.0f, 0.0f, 0.0f));
-    tag_3d_points.push_back(Point3d(0, 16.4f, 0.0f));
-    tag_3d_points.push_back(Point3d(16.4f, 16.4f, 0.0f));
-    tag_3d_points.push_back(Point3d(16.4f, 0.0f, 0.0f));
+    tag_3d_points.push_back(Point3d(0, 0.233f, 0.0f));
+    tag_3d_points.push_back(Point3d(0.233f, 0.233f, 0.0f));
+    tag_3d_points.push_back(Point3d(0.233f, 0.0f, 0.0f));
+
+/*
+    tag_3d_points.push_back(Point3d(0.0f, 0.0f, 0.0f));
+    tag_3d_points.push_back(Point3d(0, 23.3f, 0.0f));
+    tag_3d_points.push_back(Point3d(23.3f, 23.3f, 0.0f));
+    tag_3d_points.push_back(Point3d(23.3f, 0.0f, 0.0f));
+  */
 
     Point2d center = Point2d(252.8849,191.9539);
     Mat camera_matrix = (Mat_<double>(3,3) << 681.6268, 0, center.x, 0 , 676.5015, center.y, 0, 0, 1);
@@ -36,7 +43,7 @@ using_solvepnp(Mat src,vector<Point2f> tag_image_points,Mat &rotation, Mat &tran
         vector<Point3d> image_point3D;
         vector<Point2d> image_point2D;
 
-        image_point3D.push_back(Point3d(0,0,50.0));
+        image_point3D.push_back(Point3d(0,0,0.5));
 
 
         projectPoints(image_point3D, rotation, translation, camera_matrix, dist_coeffs, image_point2D);
