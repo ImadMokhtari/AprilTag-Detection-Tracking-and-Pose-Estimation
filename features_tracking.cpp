@@ -94,6 +94,7 @@ void Features_Tracking::Show_Detection(Mat src,vector<Point> tag_Points)
     line(src,Point(tag_Points[1].x,tag_Points[1].y),Point(tag_Points[2].x,tag_Points[2].y),Scalar(255,0,0),3);
     line(src,Point(tag_Points[2].x,tag_Points[2].y),Point(tag_Points[3].x,tag_Points[3].y),Scalar(255,0,0),3);
     line(src,Point(tag_Points[3].x,tag_Points[3].y),Point(tag_Points[0].x,tag_Points[0].y),Scalar(255,0,0),3);
+  //  namedWindow("OpticalFlow",CV_WINDOW_OPENGL);
     imshow( "OpticalFlow", src );
     waitKey(1);
 }

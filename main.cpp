@@ -25,7 +25,7 @@ int siz;
 void *detectionv(void *i);
 void *trackingv(void *i);
 
-int frame_number=260;
+int frame_number=310;
 int iff=1;   //index first frame.
 
 
@@ -37,7 +37,7 @@ struct StampedImg
 
 deque<StampedImg> Imgs_vector;
 StampedImg image;
-uint64_t CurId = 1;
+uint64_t CurId = 2;
 
 
 int main()
@@ -46,12 +46,14 @@ int main()
     pthread_t detection,tracking;
     for(int i=iff;i<=frame_number;i++)
     {
-        auto result ="/home/imad/Desktop/video_pfe/images_pc5*/" +to_string(i)+".png";
-        image.Img = imread(result);
+        auto result ="/home/imad/Desktop/video_pfe/videos/images_pc13/" +to_string(i)+".png";
+        Mat outImg;
+        resize(imread(result), outImg, cv::Size(), 1.5, 1.5);
+        //outImg.copyTo(image.Img);
         image.ID = CurId;
-        Imgs_vector.push_back(image);
+        Imgs_vector.push_back({outImg,image.ID});
         CurId++;
-        cout<<"vector im size  "<< Imgs_vector.size() << endl;
+        cout<<"vector im size  "<< Imgs_vector.size()<<"       img size is "<<outImg.size() << endl;
     }
 
     rc = pthread_create(&detection, NULL, detectionv, (void*)1);
@@ -85,8 +87,8 @@ void *detectionv(void *i)
     apriltag_detector_t *td = apriltag_detector_create();
     Tag.Tag_Define(getopt,tf,td);
     ofstream myfile_detections,translate,myfile_indexNotDetected_time;
-    myfile_detections.open("/home/imad/Desktop/video_pfe/evaluation results/Detection/translation.csv");
-    myfile_indexNotDetected_time.open("/home/imad/Desktop/video_pfe/evaluation results/Detection/Time.csv");
+    myfile_detections.open("/home/imad/Desktop/video_pfe/evaluation results/detection/translation_detection.csv");
+    myfile_indexNotDetected_time.open("/home/imad/Desktop/video_pfe/evaluation results/detection/Time_detection.csv");
     int k=0;
     int nff=iff-2;
     while(1)
@@ -98,15 +100,16 @@ void *detectionv(void *i)
 
         while (detec)
         {
-            // usleep(150000);
+            usleep(1500);
             //frame= image[nff].clone();
             Imgs_vector[k].Img.copyTo(frame);
 
-            start_time=clock();
+
 
             if(!frame.empty())
             {
                 cvtColor(frame, gray, COLOR_BGR2GRAY);
+            start_time=clock();
                 image_u8_t im = { .width = gray.cols,
                                   .height = gray.rows,
                                   .stride = gray.cols,
@@ -129,6 +132,8 @@ void *detectionv(void *i)
                     box_edges.push_back(Point2f(det->p[1][0], det->p[1][1]));
                     box_edges.push_back(Point2f(det->p[2][0], det->p[2][1]));
                     box_edges.push_back(Point2f(det->p[3][0], det->p[3][1]));
+                    end_time=clock()-start_time;
+
                     Track.Show_Detection(frame,tag_points);
 
                 }
@@ -139,7 +144,6 @@ void *detectionv(void *i)
 
                     camera_pose=pose.using_solvepnp(frame,box_edges,rotation,translation);
 
-                    end_time=clock()-start_time;
 
                     myfile_detections<<Imgs_vector[k].ID<<","<<translation.at<double>(0,0)<<","<<translation.at<double>(0,1)<<","<<translation.at<double>(0,2)<<","<<endl;
                     cout<<"nf= "<<nff<<endl;
@@ -149,10 +153,10 @@ void *detectionv(void *i)
 
                 else
                 {
-                    myfile_detections<<Imgs_vector[k].ID<<","<<0<<","<<0<<","<<0<<","<<endl;
+                    //  myfile_detections<<Imgs_vector[k].ID<<","<<0<<","<<0<<","<<0<<","<<endl;
                     cout<<"nf111= "<<nff<<endl;
 
-                    myfile_indexNotDetected_time<<nff<<','<<0<<endl;
+                    //myfile_indexNotDetected_time<<nff<<','<<0<<endl;
                     detec=0;
 
                 }
@@ -187,8 +191,6 @@ void *detectionv(void *i)
             begin_detect=true;
         }
         k++;
-
-
     }
     myfile_detections.close();
     myfile_indexNotDetected_time.close();
