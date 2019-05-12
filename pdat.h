@@ -6,7 +6,6 @@
 #include "features_tracking.h"
 #include "pose_estimation.h"
 #include<deque>
-
 #include <ctime>
 
 
@@ -24,6 +23,11 @@ private:
     };
 
 public:
+
+    int frame_width ;//=   cap.get(CV_CAP_PROP_FRAME_WIDTH);
+    int frame_height ;//=   cap.get(CV_CAP_PROP_FRAME_HEIGHT);
+
+
     uint64_t CurId,previous_id,Detection_ID;
     deque<StampedImg> Previous_Imgs;
     StampedImg  current_image;

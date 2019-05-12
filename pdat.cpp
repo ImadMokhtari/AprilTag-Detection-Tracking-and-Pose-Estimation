@@ -1,9 +1,10 @@
-﻿#include "pdat.h"
-#include <chrono>
+﻿#include <chrono>
+#include "pdat.h"
 
 pdat::
 pdat()
-{  this->previous_id = 0;
+{
+    this->previous_id = 0;
     this->Detection_ID = 0;
     this->CurId = 1;
     this->end_detection = false;
@@ -15,7 +16,7 @@ pdat()
 
 vector<Mat> image;
 int ni=1,nii=ni;
-int nf=260;
+int nf=310;
 
 void * pdat::
 image_thread()
@@ -39,23 +40,21 @@ image_thread()
 
     for (int i=ni;i<=nf;i++)
     {
-        auto result ="/home/imad/Desktop/video_pfe/images_pc5*/" +to_string(i)+".png";
-        image.push_back(imread(result));
-
-        cout<<"imgs  "<<image.size()<<endl;
+        auto result ="/home/imad/Desktop/video_pfe/videos/images_pc13/" +to_string(i)+".png";
+        Mat outImg;
+        resize(imread(result), outImg, cv::Size(), 0.75, 0.75);
+        image.push_back(outImg);
+        cout<<"imgs  "<<image.size()<<"   size of image is "<<outImg.size()<<endl;
     }
 
-    Mat frame;
-    int i=1;
+    //    Mat frame;
     // if(cap.isOpened())
-
+   // usleep(1500000);
     while(1)
     {
         //cap >> frame ;
         Mat im;
 
-        //resize(frame, current_image.Img, Size(), 1, 1);
-        usleep(41666);
         image[ni-nii].copyTo(current_image.Img);
         ni++;
 
@@ -69,7 +68,7 @@ image_thread()
         else
             exit(-1);
 
-        // usleep(41666);
+        usleep(33333);
         // usleep(20000);
 
     }
@@ -129,7 +128,7 @@ detection()
 
                     end_detection=true;
                     detection_finished=true;
-                    // cout<<"---------------------------------------------------Detectoin_END_ID = " << Detection_ID<<endl;
+                    cout<<"---------------------------------------------------Detectoin_END_ID = " << Detection_ID<<endl;
 
                 }
             }
@@ -157,11 +156,11 @@ tracking_current()
     Features_Tracking Track;
     int k;
     ofstream Time,translate,translatedetect;
+    clock_t start,end;
 
 
-    translate.open("/home/imad/Desktop/video_pfe/evaluation results/PDAT Amelioré/translation.csv");
-    translatedetect.open("/home/imad/Desktop/video_pfe/evaluation results/PDAT Amelioré/translationdetection.csv");
-    Time.open("/home/imad/Desktop/video_pfe/evaluation results/PDAT Amelioré/Time.csv");
+    translate.open("/home/imad/Desktop/video_pfe/evaluation results/pdat_a/translation_pdata.csv");
+    Time.open("/home/imad/Desktop/video_pfe/evaluation results/pdat_a/Time_pdata.csv");
 
     while(1)
     {
@@ -179,7 +178,7 @@ tracking_current()
         //k++;
         if(prev_track_finished)
         {
-            //cout<<"????????????__Current Track init__????????????\n";
+            cout<<"????????????__Current Track init__????????????\n";
             _corners=_next_corners_previous;
             _box_edges=_nedges_previous;
             prev_track_finished=false;
@@ -193,19 +192,22 @@ tracking_current()
             src = image.clone();
 
             cout<<"**********************************current_trac_ID = " << current_image.ID<<endl;
-            cout<< current_image.ID<<endl;
 
             cvtColor( src, src_gray, CV_BGR2GRAY );
             if(prevgray.empty())
                 src_gray.copyTo(prevgray);
 
-            next_corners= Track.OpticalFlow_Homograhpy(prevgray,src_gray,_corners,_corners,H);
+            start=clock();
+
+            next_corners= Track.OpticalFlow_Homograhpy(prevgray,src_gray,_corners,corners0,H);
             nedges=Track.OpticalFlow_tracking_box(src,prevgray,src_gray,_box_edges);
+
+            end=clock()-start;
+
             Track.Show_OpticalFlow(2,src,_corners,next_corners);
 
             if(_box_edges.size() > 0)
             {
-                cout<<"k  "<< ++k<<endl;
                 camera_pose = pose.using_solvepnp(src,_box_edges,rotation,translation);
                 translate <<current_image.ID<<","<< translation.at<double>(0,0)<<","<<translation.at<double>(0,1)<<","<<translation.at<double>(0,2)<<","<<endl;
 
@@ -220,8 +222,7 @@ tracking_current()
                     Find_detec=false;
                 }
             }
-            else
-                translate<<current_image.ID<<","<<0<<","<<0<<","<<0<<","<<endl;
+            
 
             if( box_edges.empty() && next_corners.size() < 7)
             {
@@ -238,6 +239,8 @@ tracking_current()
             imshow( "OpticalFlow", src );
             waitKey(1);
             swap(prevgray,src_gray);
+            Time<<2.5<<','<<(float)end/CLOCKS_PER_SEC<<','<<endl;
+
         }
 
     }
@@ -284,7 +287,7 @@ tracking_previous()
             while(Find_ID)
             {
                 cvtColor(Previous_Imgs[previous_index].Img , src_gray, CV_BGR2GRAY );
-                // cout<<"Previous_track_ID="<<Previous_Imgs[previous_index].ID<<endl;
+                cout<<"Previous_track_ID="<<Previous_Imgs[previous_index].ID<<endl;
 
                 if(prevgray.empty())
                     src_gray.copyTo(prevgray);

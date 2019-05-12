@@ -23,13 +23,15 @@ OpticalFlow_Homograhpy(Mat prevgray,Mat src_gray,vector<Point2f> corners,vector<
                              TermCriteria(TermCriteria::COUNT|TermCriteria::EPS,20,0.03),
                              0,
                              0.05);
-
+/*
         if(corners0.size()==next_corners.size())
         {
+            calc_homography = true;
+          //  cout << "calc _ homography \n";
             H =findHomography (corners0,
                                next_corners,
                                RANSAC,         //method to use
-                               3,
+                               4,
                                OutLiersMask,   //OutputArray mask
                                1000,           //const int maxIters
                                0.9);
@@ -48,6 +50,8 @@ OpticalFlow_Homograhpy(Mat prevgray,Mat src_gray,vector<Point2f> corners,vector<
             corners.resize(j);
             corners0.resize(j);
         }
+        else
+            calc_homography = false;*/
         return next_corners;
     }
 }
@@ -200,25 +204,35 @@ OpticalFlow_tracking_box_previous(Mat prevgray,Mat src_gray,vector<Point2f> edge
 }
 
 vector<Point2f> Features_Tracking::
-Next_with_Homography(vector<Point2f> tag_points,Mat H)//,vector<Point>next_edges)
+Next_with_Homography(Mat src, vector<Point2f> tag_points,Mat H)//,vector<Point>next_edges)
 {
     vector<Point2f> next_edges,next_corners;
 
     if(!H.empty() && !tag_points.empty())
     {
-        pred_edge.clear();
-        next_edges.clear();
-        next_points.clear();
-
-        for (int i=0;i<4;i++)
+        if(calc_homography)
         {
-            pred.push_back(Point3f(tag_points[i].x,tag_points[i].y,1));
-            Mat edge1 = (Mat_<double>(3,1)<<pred.at<float>(i,0),pred.at<float>(i,1),1);
-            Mat edge11=H*edge1;
-            next_points.push_back(edge11);
-            Point e1((int) edge11.at<double>(0), (int) edge11.at<double>(1));
-            next_edges.push_back(Point((int) edge11.at<double>(0), (int) edge11.at<double>(1)));
+            pred_edge.clear();
+            next_edges.clear();
+            next_points.clear();
+
+            for (int i=0;i<4;i++)
+            {
+                pred.push_back(Point3f(tag_points[i].x,tag_points[i].y,1));
+                Mat edge1 = (Mat_<double>(3,1)<<pred.at<float>(i,0),pred.at<float>(i,1),1);
+                Mat edge11=H*edge1;
+                next_points.push_back(edge11);
+                Point e1((int) edge11.at<double>(0), (int) edge11.at<double>(1));
+                next_edges.push_back(Point((int) edge11.at<double>(0), (int) edge11.at<double>(1)));
+
+            }
+         //   cout << "calc _ homography*********** \n";
+            line(src,Point(next_edges[0].x,next_edges[0].y),Point(next_edges[1].x,next_edges[1].y),Scalar(0,255,0),2);
+            line(src,Point(next_edges[1].x,next_edges[1].y),Point(next_edges[2].x,next_edges[2].y),Scalar(0,255,0),2);
+            line(src,Point(next_edges[2].x,next_edges[2].y),Point(next_edges[3].x,next_edges[3].y),Scalar(0,255,0),2);
+            line(src,Point(next_edges[3].x,next_edges[3].y),Point(next_edges[0].x,next_edges[0].y),Scalar(0,255,0),2);
+
+            return next_edges;
         }
-        return next_edges;
     }
 }
